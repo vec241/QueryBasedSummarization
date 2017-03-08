@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# ==================================================
+# To VISUALIZE graph in TENSORBOARD :
+# In terminal :
+# tensorboard --logdir="./graphs" --port 6006
+# In browser
+# http://localhost:6006/
+# ==================================================
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -72,12 +80,15 @@ print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 # Training
 # ==================================================
 
+
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
       allow_soft_placement=FLAGS.allow_soft_placement,
       log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_conf)
+
     with sess.as_default():
+
         cnn = TextCNN(
             #sequence_length=q_train.shape[1],
             num_classes=y_train.shape[1],
@@ -176,6 +187,9 @@ with tf.Graph().as_default():
         # Training loop. For each batch...
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
+
+            print(y_batch)
+
             train_step(q_batch, p_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
