@@ -18,27 +18,17 @@ class TextCNN(object):
 
         # Keeping track of l2 regularization loss (optional)
         l2_loss = tf.constant(0.0)
-        '''
-        # Preparing inputs in right format
-        with tf.name_scope("expanding"):
-            self.input_q_expanded = tf.expand_dims(self.input_q, 2, name='input_q_expanded')
-            self.input_p_expanded = tf.expand_dims(self.input_p, 2, name='input_p_expanded')
-        '''
+
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
             '''W = tf.Variable(
                 tf.random_uniform([embedding_size, embedding_size, num_classes], -1.0, 1.0),
                 name="W")'''
-            W = tf.get_variable(
+            self.W = tf.get_variable(
                 "W",
                 shape=[embedding_size, embedding_size, num_classes],
                 initializer=tf.contrib.layers.xavier_initializer())
-            #W_expanded = tf.expand_dims(W, 0, name='W_expanded')
-            #l2_loss += tf.nn.l2_loss(W)
-            #Wpp = tf.multiply(W_expanded,self.input_p_expanded, name='Wpp')
-            #print(Wpp)
-            #Wp = tf.reduce_sum(tf.multiply(W_expanded,self.input_p_expanded),1, name="Wp")
-            Wp_flat = tf.matmul(self.input_p, tf.reshape(W,[embedding_size,embedding_size*num_classes]), name='Wp_flat')
+            Wp_flat = tf.matmul(self.input_p, tf.reshape(self.W,[embedding_size,embedding_size*num_classes]), name='Wp_flat')
             print(Wp_flat)
             Wp = tf.transpose(tf.reshape(Wp_flat,[-1, embedding_size, num_classes]), perm=[1, 0, 2], name='Wp')
             print(Wp)
@@ -47,17 +37,15 @@ class TextCNN(object):
             qWp = tf.reshape(qWp, [-1, embedding_size, 2])
             self.scores = tf.reduce_sum(qWp, 1, name="scores")
             print(self.scores)
-            #self.scores = tf.reduce_sum(tf.multiply(self.input_q_expanded, Wp), 0, name="scores")
-            #self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
-            #self.scores = tf.matmul(self.input_q,tf.reshape(Wp,[embedding_size,num_classes]), name="scores")
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
             print(self.predictions)
+
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
             print(self.scores)
             print(self.input_y)
-            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.scores, logits=self.input_y)
+            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores)
             print('1')
             print(losses)
             self.loss = tf.reduce_mean(losses,0) #+ l2_reg_lambda * l2_loss
