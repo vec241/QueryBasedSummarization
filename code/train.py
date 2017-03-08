@@ -80,13 +80,13 @@ print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 # Training
 # ==================================================
 
-
+print("Entering into graph\n")
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
       allow_soft_placement=FLAGS.allow_soft_placement,
       log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_conf)
-
+    print("Entering into session\n")
     with sess.as_default():
 
         cnn = TextCNN(
@@ -98,6 +98,17 @@ with tf.Graph().as_default():
             num_filters=FLAGS.num_filters,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
 
+        # Output directory for models and summaries
+        timestamp = str(int(time.time()))
+        out_dir = os.path.abspath(os.path.join("../../runs", timestamp))  #os.path.curdir,"runs", timestamp
+        print("Writing to {}\n".format(out_dir))
+
+        # Train Summaries
+        #train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
+        print("Defined CNN\n")
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
         optimizer = tf.train.AdamOptimizer(1e-3)
@@ -115,18 +126,18 @@ with tf.Graph().as_default():
         grad_summaries_merged = tf.summary.merge(grad_summaries)
 
         # Output directory for models and summaries
-        timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        print("Writing to {}\n".format(out_dir))
+        #timestamp = str(int(time.time()))
+        #out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+        #print("Writing to {}\n".format(out_dir))
 
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", cnn.loss)
         acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
         # Train Summaries
-        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
-        train_summary_dir = os.path.join(out_dir, "summaries", "train")
-        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+        #train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        #train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        #train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
         # Dev summaries
         dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
