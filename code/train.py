@@ -22,9 +22,9 @@ from tensorflow.contrib import learn
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("labels", "../../data/short_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("query_CBOW", "../../data/short_fold0_600K_query_CBOW.csv", "query_CBOW")
-tf.flags.DEFINE_string("paragraph_CBOW", "../../data/short_fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
+tf.flags.DEFINE_string("labels", "../../data/fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("query_CBOW", "../../data/fold0_600K_query_CBOW.csv", "query_CBOW")
+tf.flags.DEFINE_string("paragraph_CBOW", "../../data/fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
 
 
 # Model Hyperparameters
@@ -107,10 +107,7 @@ with tf.Graph().as_default():
         out_dir = os.path.abspath(os.path.join("../../runs", timestamp))  #os.path.curdir,"runs", timestamp
         print("Writing to {}\n".format(out_dir))
 
-        # Train Summaries
-        #train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
-        train_summary_dir = os.path.join(out_dir, "summaries", "train")
-        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
 
         print("Defined CNN\n")
         # Define Training procedure
@@ -139,9 +136,9 @@ with tf.Graph().as_default():
         acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
         # Train Summaries
-        #train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
-        #train_summary_dir = os.path.join(out_dir, "summaries", "train")
-        #train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
         # Dev summaries
         dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
@@ -156,7 +153,7 @@ with tf.Graph().as_default():
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+        #vocab_processor.save(os.path.join(out_dir, "vocab"))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
@@ -178,14 +175,14 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(q_batch, p_batch, writer=None):
+        def dev_step(q_batch, p_batch, y_dev, writer=None):
             """
             Evaluates model on a dev set
             """
             feed_dict = {
               cnn.input_q: q_batch,
               cnn.input_p: p_batch,
-              cnn.input_y: y_batch,
+              cnn.input_y: y_dev,
               cnn.dropout_keep_prob: 1.0
             }
             step, summaries, loss, accuracy = sess.run(
@@ -203,7 +200,7 @@ with tf.Graph().as_default():
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
 
-            print(y_batch)
+            #print(y_batch)
 
             train_step(q_batch, p_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)

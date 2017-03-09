@@ -20,41 +20,53 @@ class TextCNN(object):
         l2_loss = tf.constant(0.0)
 
         # Final (unnormalized) scores and predictions
+        '''
         with tf.name_scope("output"):
-            '''W = tf.Variable(
-                tf.random_uniform([embedding_size, embedding_size, num_classes], -1.0, 1.0),
-                name="W")'''
-            self.W = tf.get_variable(
+            W = tf.get_variable(
                 "W",
-                shape=[embedding_size, embedding_size, num_classes],
+                shape=[embedding_size , embedding_size, num_classes],
                 initializer=tf.contrib.layers.xavier_initializer())
-            Wp_flat = tf.matmul(self.input_p, tf.reshape(self.W,[embedding_size,embedding_size*num_classes]), name='Wp_flat')
+            Wp_flat = tf.matmul(self.input_p, tf.reshape(W,[embedding_size,embedding_size*num_classes]), name='Wp_flat')
             print(Wp_flat)
-            Wp = tf.transpose(tf.reshape(Wp_flat,[-1, embedding_size, num_classes]), perm=[1, 0, 2], name='Wp')
+            #Wp = tf.transpose(tf.reshape(Wp_flat,[-1, embedding_size, num_classes]), perm=[1, 0, 2], name='Wp')
+            Wp = tf.reshape(Wp_flat,[-1, embedding_size, num_classes], name='Wp')
             print(Wp)
             qWp = tf.matmul(tf.reshape(self.input_q, [-1, 1]), tf.reshape(Wp, [-1, num_classes]), name='qWp')
             print(qWp)
-            qWp = tf.reshape(qWp, [-1, embedding_size, 2])
-            self.scores = tf.reduce_sum(qWp, 1, name="scores")
+            qWp2 = tf.reshape(qWp, [-1, embedding_size, 2], name='qWp2')
+            print(qWp2)
+            self.scores = tf.reduce_sum(qWp2, 1, name="scores")
             print(self.scores)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
             print(self.predictions)
+        '''
+        with tf.name_scope("output"):
+            W = tf.get_variable(
+                "W",
+                shape=[embedding_size , embedding_size, num_classes],
+                initializer=tf.contrib.layers.xavier_initializer())
+            qW = tf.matmul(self.input_p, tf.reshape(W,[embedding_size,embedding_size*num_classes]), name='qW')
+            qW_reshape = tf.reshape(qW,[-1,embedding_size, num_classes], name='qW_reshape')
+            # print(qW_reshape)
+            qW_reshape2 = tf.reshape(qW_reshape,[-1,embedding_size], name='qW_reshape2')
+            double_p = tf.concat([self.input_p, self.input_p], 0, name='double_p')
+            # print(qW_reshape2)
+            # print(double_p)
+            double_qWp = tf.multiply(qW_reshape2, double_p, name='double_qWp')
+            double_qWp_reshape = tf.reshape(double_qWp,[-1,embedding_size, num_classes], name='double_qWp_reshape')
+            self.scores = tf.reduce_sum(double_qWp_reshape, 1, name="scores")
+            self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
-            print(self.scores)
-            print(self.input_y)
             losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores)
-            print('1')
-            print(losses)
             self.loss = tf.reduce_mean(losses,0) #+ l2_reg_lambda * l2_loss
-            print('2')
-            print(self.loss)
-            print('3')
 
         # Accuracy
         with tf.name_scope("accuracy"):
+            #print(self.predictions)
+            #print(tf.argmax(self.input_y, 1))
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
 
