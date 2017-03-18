@@ -14,18 +14,21 @@ import os
 import time
 import datetime
 import data_helpers
-from text_cnn import TextCNN
 from tensorflow.contrib import learn
 
 # Parameters
 # ==================================================
+
+# Which model to use
+tf.flags.DEFINE_string("model", "baseline_sub_mult_nn", "Specify which model to use")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("labels", "../../data/fold0_600K_labels.csv", "labels")
 tf.flags.DEFINE_string("query_CBOW", "../../data/fold0_600K_query_CBOW.csv", "query_CBOW")
 tf.flags.DEFINE_string("paragraph_CBOW", "../../data/fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
-
+tf.flags.DEFINE_string("query_text", "../../data/short_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("paragraph_text", "../../data/short_fold0_600K_paragraph_text.csv", "paragraph_text")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
@@ -33,6 +36,7 @@ tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (d
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
+tf.flags.DEFINE_float("learning_rate", 1e-3, "Learning rate (default: 1e-3)")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 50, "Batch Size (default: 64)")
@@ -40,6 +44,7 @@ tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs (default: 
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
+
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -51,22 +56,32 @@ for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
 
+# Import model
+print("importing model %s ..." %(FLAGS.model))
+if FLAGS.model == "baseline_bilinear":
+    from baseline_bilinear import Model
+elif FLAGS.model == "baseline_sub_mult_nn":
+    from baseline_sub_mult_nn import Model
+elif FLAGS.model == "baseline_concat_nn":
+    from baseline_concat_nn import Model
+else:
+    print("wrong model defined")
 
 # Data Preparation
 # ==================================================
 
 # Load data
 print("Loading data...")
-q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW)
-
-
+if FLAGS.model in ["baseline_bilinear", "baseline_sub_mult_nn", "baseline_concat_nn"]:
+    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW)
+else:
+    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text)
 
 # Randomly shuffle data
 c = list(zip(q, p, y))
 np.random.shuffle(c)
 q_shuffled, p_shuffled, y_shuffled = zip(*c)
 q_shuffled, p_shuffled, y_shuffled = np.array(q_shuffled), np.array(p_shuffled), np.array(y_shuffled)
-
 
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
@@ -89,7 +104,7 @@ with tf.Graph().as_default():
     print("Entering into session\n")
     with sess.as_default():
 
-        cnn = TextCNN(
+        model = Model(
             #sequence_length=q_train.shape[1],
             num_classes=y_train.shape[1],
             #vocab_size=len(vocab_processor.vocabulary_),
@@ -97,23 +112,17 @@ with tf.Graph().as_default():
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
-        '''
-        # Initialize all variables
-        sess.run(tf.global_variables_initializer())
-        print(cnn.W.eval())
-        '''
+
         # Output directory for models and summaries
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join("../../runs", timestamp))  #os.path.curdir,"runs", timestamp
         print("Writing to {}\n".format(out_dir))
 
-
-
-        print("Defined CNN\n")
+        print("Defined Model\n")
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(1e-3)
-        grads_and_vars = optimizer.compute_gradients(cnn.loss, tf.trainable_variables())
+        optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
+        grads_and_vars = optimizer.compute_gradients(model.loss, tf.trainable_variables())
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
         # Keep track of gradient values and sparsity (optional)
@@ -132,8 +141,8 @@ with tf.Graph().as_default():
         #print("Writing to {}\n".format(out_dir))
 
         # Summaries for loss and accuracy
-        loss_summary = tf.summary.scalar("loss", cnn.loss)
-        acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+        loss_summary = tf.summary.scalar("loss", model.loss)
+        acc_summary = tf.summary.scalar("accuracy", model.accuracy)
 
         # Train Summaries
         train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
@@ -163,13 +172,13 @@ with tf.Graph().as_default():
             A single training step
             """
             feed_dict = {
-              cnn.input_q: q_batch,
-              cnn.input_p: p_batch,
-              cnn.input_y: y_batch,
-              cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+              model.input_q: q_batch,
+              model.input_p: p_batch,
+              model.input_y: y_batch,
+              model.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
             _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+                [train_op, global_step, train_summary_op, model.loss, model.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
@@ -180,13 +189,13 @@ with tf.Graph().as_default():
             Evaluates model on a dev set
             """
             feed_dict = {
-              cnn.input_q: q_batch,
-              cnn.input_p: p_batch,
-              cnn.input_y: y_dev,
-              cnn.dropout_keep_prob: 1.0
+              model.input_q: q_batch,
+              model.input_p: p_batch,
+              model.input_y: y_dev,
+              model.dropout_keep_prob: 1.0
             }
             step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+                [global_step, dev_summary_op, model.loss, model.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
@@ -199,9 +208,6 @@ with tf.Graph().as_default():
         # Training loop. For each batch...
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
-
-            #print(y_batch)
-
             train_step(q_batch, p_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
