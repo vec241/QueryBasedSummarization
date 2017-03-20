@@ -24,11 +24,16 @@ tf.flags.DEFINE_string("model", "baseline_sub_mult_nn", "Specify which model to 
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("labels", "../../data/fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("query_CBOW", "../../data/fold0_600K_query_CBOW.csv", "query_CBOW")
-tf.flags.DEFINE_string("paragraph_CBOW", "../../data/fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
+tf.flags.DEFINE_string("labels", "../../data/short_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("query_CBOW", "../../data/short_fold0_600K_query_CBOW.csv", "query_CBOW")
+tf.flags.DEFINE_string("paragraph_CBOW", "../../data/short_fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
+tf.flags.DEFINE_string("query_CNN", "../../data/short_fold0_600K_query_CNN.csv", "query_CNN")
+tf.flags.DEFINE_string("paragraph_CNN", "../../data/short_fold0_600K_paragraph_CNN.csv", "paragraph_CNN")
+tf.flags.DEFINE_string("query_RNN", "../../data/short_fold0_600K_query_RNN.csv", "query_RNN")
+tf.flags.DEFINE_string("paragraph_RNN", "../../data/short_fold0_600K_paragraph_RNN.csv", "paragraph_RNN")
 tf.flags.DEFINE_string("query_text", "../../data/short_fold0_600K_query_text.csv", "query_text")
 tf.flags.DEFINE_string("paragraph_text", "../../data/short_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
@@ -73,9 +78,10 @@ else:
 # Load data
 print("Loading data...")
 if FLAGS.model in ["baseline_bilinear", "baseline_sub_mult_nn", "baseline_concat_nn"]:
-    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW)
+    q, p, y = data_helpers.load_data_and_labels(FLAGS)
+    #q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW, FLAGS.embedding_method)
 else:
-    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text)
+    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text, FLAGS.embedding_method)
 
 # Randomly shuffle data
 c = list(zip(q, p, y))
