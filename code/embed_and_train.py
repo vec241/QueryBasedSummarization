@@ -13,7 +13,7 @@ import numpy as np
 import os
 import time
 import datetime
-import data_helpers
+import data_helpers_embed
 from tensorflow.contrib import learn
 
 # Parameters
@@ -78,10 +78,10 @@ else:
 # Load data
 print("Loading data...")
 if FLAGS.model in ["baseline_bilinear", "baseline_sub_mult_nn", "baseline_concat_nn"]:
-    q, p, y = data_helpers.load_data_and_labels(FLAGS)
-    #q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW, FLAGS.embedding_method)
+    q, p, y = data_helpers_embed.load_data_and_labels(FLAGS)
+    #q, p, y = data_helpers_embed.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW, FLAGS.embedding_method)
 else:
-    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text, FLAGS.embedding_method)
+    q, p, y = data_helpers_embed.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text, FLAGS.embedding_method)
 
 # Build vocabulary
 #max_document_length = max([len(x.split(" ")) for x in x_text])
@@ -234,7 +234,7 @@ with tf.Graph().as_default():
                 writer.add_summary(summaries, step)
 
         # Generate batches
-        batches = data_helpers.batch_iter(
+        batches = data_helpers_embed.batch_iter(
             list(zip(q_train, p_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         print("data batches prepared for the model : ")
 
@@ -242,7 +242,7 @@ with tf.Graph().as_default():
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
             #print ("q_batch.shape[1] :",q_batch.shape[1])
-            q_batch, p_batch = data_helpers.embed_batch(q_batch, p_batch)
+            q_batch, p_batch = data_helpers_embed.embed_batch(q_batch, p_batch)
             print("train_step started for batch")
             print ("q_batch.shape :",np.shape(q_batch))
             print ("p_batch.shape :",np.shape(p_batch))
