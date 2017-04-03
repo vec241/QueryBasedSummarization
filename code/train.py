@@ -20,7 +20,7 @@ from tensorflow.contrib import learn
 # ==================================================
 
 # Which model to use
-tf.flags.DEFINE_string("model", "baseline_sub_mult_nn", "Specify which model to use")
+tf.flags.DEFINE_string("model", "baseline_concat_nn", "Specify which model to use")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -79,9 +79,8 @@ else:
 print("Loading data...")
 if FLAGS.model in ["baseline_bilinear", "baseline_sub_mult_nn", "baseline_concat_nn"]:
     q, p, y = data_helpers.load_data_and_labels(FLAGS)
-    #q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW, FLAGS.embedding_method)
 else:
-    q, p, y = data_helpers.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text, FLAGS.embedding_method)
+    q, p, y = data_helpers.load_data_and_labels(FLAGS)
 
 # Randomly shuffle data
 c = list(zip(q, p, y))

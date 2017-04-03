@@ -29,6 +29,7 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
             q_embedding_array = np.array(q)
             q_embedding_array.dump(FLAGS.query_CBOW)
             print("Saved Embedding as numpy object for query ")
+            q = np.array(np.load(FLAGS.query_CBOW).tolist())
             #q = np.array(np.load(query_CBOW).tolist()) #need to change
 
         #Query Embedding
@@ -43,6 +44,7 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
             p_embedding_array = np.array(p)
             p_embedding_array.dump(FLAGS.paragraph_CBOW)
             print("Saved Embedding as numpy object for paragraphs ")
+            p = np.array(np.load(FLAGS.paragraph_CBOW).tolist())
     #labels
     if not os.path.isfile(FLAGS.labels):
         print("File containing labels not present. Please check the directory.")
