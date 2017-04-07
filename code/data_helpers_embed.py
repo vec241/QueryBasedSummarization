@@ -6,96 +6,70 @@ from collections import Counter
 import pickle
 import os.path
 import spacy
+from tqdm import tqdm
 
+# TO DO : STRING CLEANING, STOP WORDS, ...
+'''
+def clean_str(string):
+    """
+    Tokenization/string cleaning for all datasets except for SST.
+    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+    """
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+    string = re.sub(r"\'s", " \'s", string)
+    string = re.sub(r"\'ve", " \'ve", string)
+    string = re.sub(r"n\'t", " n\'t", string)
+    string = re.sub(r"\'re", " \'re", string)
+    string = re.sub(r"\'d", " \'d", string)
+    string = re.sub(r"\'ll", " \'ll", string)
+    string = re.sub(r",", " , ", string)
+    string = re.sub(r"!", " ! ", string)
+    string = re.sub(r"\(", " \( ", string)
+    string = re.sub(r"\)", " \) ", string)
+    string = re.sub(r"\?", " \? ", string)
+    string = re.sub(r"\s{2,}", " ", string)
+    return string.strip().lower()
+'''
 
 def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_method
     """
     Loads data from file and generates labels.
     """
+    if FLAGS.dataset_size == 'short':
+        q_path = FLAGS.short_query_text
+        p_path = FLAGS.short_paragraph_text
+        y_path = FLAGS.short_labels
+    elif FLAGS.dataset_size == 'medium':
+        q_path = FLAGS.medium_query_text
+        p_path = FLAGS.medium_paragraph_text
+        y_path = FLAGS.medium_labels
+    elif FLAGS.dataset_size == 'full':
+        q_path = FLAGS.full_query_text
+        p_path = FLAGS.full_paragraph_text
+        y_path = FLAGS.full_labels
+    else:
+        print("Please define size of dataset to use")
+        sys.exit()
 
-    #CBOW Calculation
-    #if FLAGS.embedding_method == 'CBOW':
-    #    print("Embedding with CBOW starts...")
-
-    #Query Embedding
-    if os.path.isfile(FLAGS.query_text):
-        print("CBOW Embedding for query already present. Loading the embeddings directly...")
-        q = np.load(FLAGS.query_text).tolist()
-        print ("q shape before :",np.shape(q))
-        q = [[x] for x in q]
-        print ("q shape after : ",np.shape(q))
+    if os.path.isfile(q_path):
+        print("Loading queries...")
+        q = np.load(q_path)
     else:
         print("text file not present. Exiting ...")
         sys.exit()
-    if os.path.isfile(FLAGS.paragraph_text):
-        print("CBOW Embedding for query already present. Loading the embeddings directly...")
-        p = np.array(np.load(FLAGS.paragraph_text).tolist())
-        p = [[x] for x in p]
+    if os.path.isfile(p_path):
+        print("Loading paragraphs...")
+        p = np.load(p_path)
     else:
         print("text file not present. Exiting ...")
         sys.exit()
-    if not os.path.isfile(FLAGS.labels):
+    if not os.path.isfile(y_path):
         print("File containing labels not present. Please check the directory.")
         sys.exit()
     else:
-        y = np.array(np.load(FLAGS.labels).tolist())
+        y = np.load(y_path)
     print("Finished loading data successfully.")
     return q, p, y
-
-    #labels
-
-    # Load data
-    #y = np.array(np.load(labels).tolist())
-    #q = np.array(np.load(query_CBOW).tolist())
-    #p = np.array(np.load(paragraph_CBOW).tolist())
-
-
-#method_name = 'CBOW'
-#query_vecs = embed('query',method_name)
-#paragraph_vecs = embed('para_text',method_name)
-
-
-
-def embed_batch(q_batch,p_batch,method_name='CBOW'):
-    print(len(q_batch))
-    q_batch_embedding = embed(q_batch)
-    p_batch_embedding = embed(p_batch)
-    #print("q_batch_embedding shape :  ",np.shape(q_batch_embedding))
-    return q_batch_embedding,p_batch_embedding
-    #for i in q_batch:
-    #    print(i)
-
-
-def embed(data,method_name='CBOW'):
-    nlp = spacy.load('en')
-    doc_vecs = []
-    word_vecs = []
-    append_count = 0
-    if method_name == 'CBOW':
-            doc_embed = 'doc_embed_with_'+method_name
-    print ("inside embed function with :",doc_embed)
-    #for qu in tqdm(list(df[column_name])):
-    print ("iterating over the data of length :", len(data))
-    for document in data: #list(data) #list(short_df_1000[column_name]) #list(df[column_name]) #document in data_list:
-        document = str(document)
-        doc = nlp(document)
-        for word in doc:
-            word_vec = word.vector
-            word_vecs.append(word_vec)
-        doc_vec = doc_embed_with_CBOW(word_vecs)
-        doc_vecs.append(doc_vec)
-        #print ("append count :", append_count)
-        append_count+=1
-    return doc_vecs
-
-def doc_embed_with_CBOW(word_vecs):
-    mean_vec = np.zeros([1, 300])
-    for word_vec in word_vecs:
-        # compute final vec
-        mean_vec += word_vec
-    mean_vec = mean_vec.mean(axis=0)
-    return mean_vec
-
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
@@ -118,26 +92,59 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             yield shuffled_data[start_index:end_index]
 
 
+def load_embeddings(path,vocab):
+    """
+    Loads Glove emeddings and returns an embedding matrix corresponding to the vocabulary.
+    Embedding matrix is of size vocab_size x embedding_size
+    """
+    print("Loading embeddings...")
+    embs = ([x.split(" ") for x in open(path).read().strip().split("\n")])
+    print("Creating embedding mapping matrix...")
+    words = np.array([x[0] for x in embs])
+    mat = np.array([x[1:] for x in embs]).astype(float)
+    mapped_words = [x[0] for x in vocab.transform(words)]
+    vocab_size = len(vocab.vocabulary_)
+    emb_matrix = np.zeros((vocab_size,mat.shape[1]))
+    set_words = set(mapped_words)
+    for i in tqdm(range(vocab_size)):
+        if i in set_words:
+            emb_matrix[i]=mat[mapped_words.index(i)]
+    return emb_matrix
+
+
 '''
-def clean_str(string):
-    """
-    Tokenization/string cleaning for all datasets except for SST.
-    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-    """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-    string = re.sub(r"\'s", " \'s", string)
-    string = re.sub(r"\'ve", " \'ve", string)
-    string = re.sub(r"n\'t", " n\'t", string)
-    string = re.sub(r"\'re", " \'re", string)
-    string = re.sub(r"\'d", " \'d", string)
-    string = re.sub(r"\'ll", " \'ll", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " \( ", string)
-    string = re.sub(r"\)", " \) ", string)
-    string = re.sub(r"\?", " \? ", string)
-    string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().lower()
+def embed_batch(q_batch, p_batch, vocab_proc, method_name='CBOW'):
+    q_batch_embedding = embed(q_batch, vocab_proc)
+    p_batch_embedding = embed(p_batch, vocab_proc)
+    return q_batch_embedding,p_batch_embedding
+
+
+def embed(data, vocab_proc, method_name='CBOW'):
+    nlp = spacy.load('en')
+    doc_vecs = []
+    append_count = 0
+    if method_name == 'CBOW':
+        doc_embed = 'doc_embed_with_'+method_name
+    for document in data:
+        document = str(document)
+        doc = nlp(document)
+        word_vecs = []
+        for word in doc:
+            word_vec = word_text.vector
+            word_vecs.append(word_vec)
+        doc_vec = doc_embed_with_CBOW(word_vecs)
+        doc_vecs.append(doc_vec)
+        append_count+=1
+    return doc_vecs
+
+
+def doc_embed_with_CBOW(word_vecs):
+    mean_vec = np.zeros([1, 300])
+    for word_vec in word_vecs:
+        # compute final vec
+        mean_vec += word_vec
+    mean_vec = mean_vec.mean(axis=0)
+    return mean_vec
 
 
 def load_data_and_labels(positive_data_file, negative_data_file):

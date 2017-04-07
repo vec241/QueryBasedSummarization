@@ -15,28 +15,32 @@ import time
 import datetime
 import data_helpers_embed
 from tensorflow.contrib import learn
+from sklearn.metrics import precision_score, recall_score
 
 # Parameters
 # ==================================================
 
-# Which model to use
-tf.flags.DEFINE_string("model", "baseline_sub_mult_nn", "Specify which model to use")
+# Which model, which embedding method and which data size to use
+tf.flags.DEFINE_string("model", "simple_attention_concat_nn_embed", "Specify which model to use")
+tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
+tf.flags.DEFINE_string("dataset_size", "short", "short, medium or full")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("labels", "../../data/short_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("query_CBOW", "../../data/short_fold0_600K_query_CBOW.csv", "query_CBOW")
-tf.flags.DEFINE_string("paragraph_CBOW", "../../data/short_fold0_600K_paragraph_CBOW.csv", "paragraph_CBOW")
-tf.flags.DEFINE_string("query_CNN", "../../data/short_fold0_600K_query_CNN.csv", "query_CNN")
-tf.flags.DEFINE_string("paragraph_CNN", "../../data/short_fold0_600K_paragraph_CNN.csv", "paragraph_CNN")
-tf.flags.DEFINE_string("query_RNN", "../../data/short_fold0_600K_query_RNN.csv", "query_RNN")
-tf.flags.DEFINE_string("paragraph_RNN", "../../data/short_fold0_600K_paragraph_RNN.csv", "paragraph_RNN")
-tf.flags.DEFINE_string("query_text", "../../data/short_fold0_600K_query_text.csv", "query_text")
-tf.flags.DEFINE_string("paragraph_text", "../../data/short_fold0_600K_paragraph_text.csv", "paragraph_text")
-tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
+tf.flags.DEFINE_string("emb_path", "../../glove/glove.6B.100d.txt","Path to word embeddings")
+tf.flags.DEFINE_string("short_labels", "../../data/short_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("short_query_text", "../../data/short_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("short_paragraph_text", "../../data/short_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("medium_labels", "../../data/medium_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("medium_query_text", "../../data/medium_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("medium_paragraph_text", "../../data/medium_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("full_labels", "../../data/fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("full_query_text", "../../data/fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("full_paragraph_text", "../../data/fold0_600K_paragraph_text.csv", "paragraph_text")
+
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
+#tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -53,6 +57,8 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+tf.flags.DEFINE_integer("vocab_freq", 10, "Min word frequency to appear in vocab")
+tf.flags.DEFINE_integer("max_doc_length", 1000, "Max document length. Truncates documents longer than 1000 words")
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
@@ -69,6 +75,14 @@ elif FLAGS.model == "baseline_sub_mult_nn":
     from baseline_sub_mult_nn import Model
 elif FLAGS.model == "baseline_concat_nn":
     from baseline_concat_nn import Model
+elif FLAGS.model == "baseline_bilinear_embed":
+    from baseline_bilinear_embed import Model
+elif FLAGS.model == "baseline_sub_mult_nn_embed":
+    from baseline_sub_mult_nn_embed import Model
+elif FLAGS.model == "baseline_concat_nn_embed":
+    from baseline_concat_nn_embed import Model
+elif FLAGS.model == "simple_attention_concat_nn_embed":
+    from simple_attention_concat_nn_embed import Model
 else:
     print("wrong model defined")
 
@@ -77,26 +91,22 @@ else:
 
 # Load data
 print("Loading data...")
-if FLAGS.model in ["baseline_bilinear", "baseline_sub_mult_nn", "baseline_concat_nn"]:
-    q, p, y = data_helpers_embed.load_data_and_labels(FLAGS)
-    #q, p, y = data_helpers_embed.load_data_and_labels(FLAGS.labels, FLAGS.query_CBOW, FLAGS.paragraph_CBOW, FLAGS.embedding_method)
-else:
-    q, p, y = data_helpers_embed.load_data_and_labels(FLAGS.labels, FLAGS.query_text, FLAGS.paragraph_text, FLAGS.embedding_method)
+q_text, p_text, y = data_helpers_embed.load_data_and_labels(FLAGS)
 
 # Build vocabulary
-#max_document_length = max([len(x.split(" ")) for x in x_text])
-#print("vocab processing Starts")
-#vocab_processor = learn.preprocessing.VocabularyProcessor()#max_document_length
-#vocab_processor.fit(p_text)
-#p = np.array(list(vocab_processor.transform(p_text)))
-#q = np.array(list(vocab_processor.transform(q_text)))
-#print("vocab processing done")
+print("Finding maximum length in train data...")
+max_document_length = max([len(p.split(" ")) for p in p_text])
+print("Maximum document length is %d words" %max_document_length)
+print("Building vocabulary...")
+vocab_processor = learn.preprocessing.VocabularyProcessor(FLAGS.max_doc_length, min_frequency=FLAGS.vocab_freq)
+print("Processing text data...")
+vocab_processor.fit(np.append(p_text,q_text))
+q = np.array(list(vocab_processor.transform(q_text)))
+p = np.array(list(vocab_processor.transform(p_text)))
 
-# Randomly shuffle data
-#np.random.seed(10)
-#shuffle_indices = np.random.permutation(np.arange(len(y)))
-#x_shuffled = x[shuffle_indices]
-#y_shuffled = y[shuffle_indices]
+# Load embeddings
+embeddings = data_helpers_embed.load_embeddings(FLAGS.emb_path, vocab_processor)
+print(embeddings.shape)
 
 # Randomly shuffle data
 print("Randomly shuffling the data.../n")
@@ -106,15 +116,14 @@ q_shuffled, p_shuffled, y_shuffled = zip(*c)
 q_shuffled, p_shuffled, y_shuffled = np.array(q_shuffled), np.array(p_shuffled), np.array(y_shuffled)
 print("data shuffled !/n")
 
-print ("q_shuffled.shape :",np.shape(q_shuffled))
-print ("p_shuffled.shape :",np.shape(p_shuffled))
-print ("y_shuffled.shape :",np.shape(y_shuffled))
-
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
 print("Splitting into train and dev \n")
 
-dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
+if FLAGS.dataset_size == "full":
+    dev_sample_index = -5000
+else:
+    dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 print("Dev Samples : ",dev_sample_index )
 q_train, q_dev = q_shuffled[:dev_sample_index], q_shuffled[dev_sample_index:]
 p_train, p_dev = p_shuffled[:dev_sample_index], p_shuffled[dev_sample_index:]
@@ -141,10 +150,11 @@ with tf.Graph().as_default():
     with sess.as_default():
 
         model = Model(
-            #sequence_length=q_train.shape[1],
             num_classes=y_train.shape[1],
-            #vocab_size=len(vocab_processor.vocabulary_),
-            embedding_size= FLAGS.embedding_dim,  #q_train.shape[1]
+            vocab_size=len(vocab_processor.vocabulary_),
+            embedding_size = embeddings.shape[1],
+            max_length = FLAGS.max_doc_length,
+            vocab_proc = vocab_processor,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
@@ -192,11 +202,12 @@ with tf.Graph().as_default():
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        #vocab_processor.save(os.path.join(out_dir, "vocab"))
+        vocab_processor.save(os.path.join(out_dir, "vocab"))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
         print ("global variable initialized")
+
         def train_step(q_batch, p_batch, y_batch):
             """
             A single training step
@@ -205,6 +216,7 @@ with tf.Graph().as_default():
               model.input_q: q_batch,
               model.input_p: p_batch,
               model.input_y: y_batch,
+              model.W_emb: embeddings,
               model.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
 
@@ -223,13 +235,16 @@ with tf.Graph().as_default():
               model.input_q: q_batch,
               model.input_p: p_batch,
               model.input_y: y_dev,
+              model.W_emb: embeddings,
               model.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, model.loss, model.accuracy],
+            step, summaries, loss, accuracy, y_true, y_pred = sess.run(
+                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            precision = precision_score(y_true, y_pred)
+            recall = recall_score(y_true, y_pred)
+            print("{}: step {}, loss {:g}, acc {:g}, precision {:g}, recall {:g}".format(time_str, step, loss, accuracy, precision, recall))
             if writer:
                 writer.add_summary(summaries, step)
 
@@ -242,13 +257,11 @@ with tf.Graph().as_default():
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
             #print ("q_batch.shape[1] :",q_batch.shape[1])
-            q_batch, p_batch = data_helpers_embed.embed_batch(q_batch, p_batch)
-            print("train_step started for batch")
-            print ("q_batch.shape :",np.shape(q_batch))
-            print ("p_batch.shape :",np.shape(p_batch))
-            print ("y_batch.shape :",np.shape(y_batch))
+            #q_batch, p_batch = data_helpers_embed.embed_batch(q_batch, p_batch)
+            #print ("q_batch.shape :",np.shape(q_batch))
+            #print ("p_batch.shape :",np.shape(p_batch))
+            #print ("y_batch.shape :",np.shape(y_batch))
             train_step(q_batch, p_batch, y_batch)
-            print("train_step done for batch")
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")

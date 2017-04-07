@@ -26,7 +26,7 @@ class Model(object):
                 shape=[embedding_size , embedding_size, num_classes],
                 initializer=tf.contrib.layers.xavier_initializer())
             W = tf.nn.dropout(W, self.dropout_keep_prob)
-            qW = tf.matmul(self.input_p, tf.reshape(W,[embedding_size,embedding_size*num_classes]), name='qW')
+            qW = tf.matmul(self.input_q, tf.reshape(W,[embedding_size,embedding_size*num_classes]), name='qW')
             qW_reshape = tf.reshape(qW,[-1,embedding_size, num_classes], name='qW_reshape')
             qW_reshape2 = tf.reshape(qW_reshape,[-1,embedding_size], name='qW_reshape2')
             double_p = tf.concat([self.input_p, self.input_p], 0, name='double_p')
