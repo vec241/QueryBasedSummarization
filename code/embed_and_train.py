@@ -23,7 +23,7 @@ from sklearn.metrics import precision_score, recall_score
 # Which model, which embedding method and which data size to use
 tf.flags.DEFINE_string("model", "simple_attention_concat_nn_embed", "Specify which model to use")
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
-tf.flags.DEFINE_string("dataset_size", "short", "short, medium or full")
+tf.flags.DEFINE_string("dataset_size", "medium", "short, medium or full")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -57,8 +57,8 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-tf.flags.DEFINE_integer("vocab_freq", 10, "Min word frequency to appear in vocab")
-tf.flags.DEFINE_integer("max_doc_length", 1000, "Max document length. Truncates documents longer than 1000 words")
+tf.flags.DEFINE_integer("vocab_freq", 5, "Min word frequency to appear in vocab. Default : 10")
+tf.flags.DEFINE_integer("max_doc_length", 50, "Max document length. Truncates documents longer than x words. Default : 1000")
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()

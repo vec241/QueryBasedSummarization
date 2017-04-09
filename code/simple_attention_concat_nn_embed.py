@@ -47,17 +47,22 @@ class Model(object):
             # Create embedding of paragraph using attention from query (embedded with CBOW)
             print(self.input_q_CBOW.get_shape())
             print(self.input_p_emb.get_shape())
-            print(tf.reshape(self.input_p_emb, [-1, embedding_size]).get_shape())
-            alphas = tf.multiply(self.input_q_CBOW, tf.reshape(self.input_p_emb, [-1, embedding_size]))
+            input_q_CBOW_expanded = tf.expand_dims(self.input_q_CBOW, 1)
+            print(input_q_CBOW_expanded.get_shape())
+            alphas = tf.multiply(input_q_CBOW_expanded, self.input_p_emb)
             print(alphas.get_shape())
-            alphas = tf.reshape(alphas, [-1])
-            alphas = self.input_p_CBOW = tf.reduce_mean(self.input_p_emb, 2, name="alphas")
+            alphas = tf.reduce_sum(alphas, 2, name="alphas")
             print(alphas.get_shape())
-            norm_alphas = tf.nn.softmax(logits=alphas, name = "norm_alphas")
+            norm_alphas = tf.nn.softmax(logits=alphas, name="norm_alphas")
             print(norm_alphas.get_shape())
-            tf.matmul(norm_alphas, )
-            # self.input_p_attention =
-            #print(self.input_p_attention.get_shape())
+            norm_alphas_expanded = tf.expand_dims(norm_alphas, 2)
+            print(norm_alphas_expanded.get_shape())
+            #self.input_p_emb = tf.transpose(self.input_p_emb, perm=[0, 2, 1])
+            #print(self.input_p_emb.get_shape())
+            input_p_attention = tf.multiply(norm_alphas_expanded, self.input_p_emb)
+            print(input_p_attention.get_shape())
+            self.input_p_attention = tf.reduce_sum(input_p_attention, 1)
+            print(self.input_p_attention.get_shape())
 
             # OPTIONAL : add dropout on the embeddings
             #self.input_q_CBOW_dropout = tf.nn.dropout(self.input_q_CBOW,self.dropout_keep_prob)
@@ -70,12 +75,23 @@ class Model(object):
         # Network Parameters
         n_hidden_1 = 256 # 1st layer number of features
         n_hidden_2 = 256 # 2nd layer number of features
-        n_input = embedding_size*2 # we are going to concat paragraph and question
+        n_input = embedding_size*4 # we are going to concat paragraph and question
         n_classes = num_classes
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
-            self.concatenated_input = tf.concat([self.input_q_CBOW, self.input_p_CBOW], 1,name="concatenated_input")
+            # Compute pointwise square difference and pointwise multiplication between Q CBOW and P embedded with attention
+            # Checks how relevant is the paragraph to the question
+            dif_p_q = tf.subtract(self.input_q_CBOW, self.input_p_attention, name="dif_p_q")
+            dif_p_q_point_mul = tf.multiply(dif_p_q, dif_p_q, name ="dif_p_q_point_mul")
+            pq_point_mul = tf.multiply(self.input_q_CBOW, self.input_p_attention, name="pq_point_mul")
+            # Compute pointwise square difference and pointwise multiplication between P CBOW and P embedded with attention
+            # Checks how much the part of the paragraph relevant to the question is central with respect to the topic of the paragraph
+            dif_p_p = tf.subtract(self.input_p_CBOW, self.input_p_attention, name="dif_p_p")
+            dif_p_p_point_mul = tf.multiply(dif_p_p, dif_p_p, name ="dif_p_p_point_mul")
+            pp_point_mul = tf.multiply(self.input_p_CBOW,self.input_q_CBOW,name="pp_point_mul")
+
+            self.concatenated_input = tf.concat([dif_p_q, pq_point_mul, dif_p_p, pp_point_mul], 1,name="concatenated_input")
             self.scores = self.multilayer_perceptron(self.concatenated_input,
                             n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
