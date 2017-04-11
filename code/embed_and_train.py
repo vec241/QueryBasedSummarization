@@ -57,7 +57,7 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-tf.flags.DEFINE_integer("vocab_freq", 5, "Min word frequency to appear in vocab. Default : 10")
+tf.flags.DEFINE_integer("vocab_freq", 3, "Min word frequency to appear in vocab. Default : 5")
 tf.flags.DEFINE_integer("max_doc_length", 50, "Max document length. Truncates documents longer than x words. Default : 1000")
 
 FLAGS = tf.flags.FLAGS
@@ -93,6 +93,9 @@ else:
 print("Loading data...")
 q_text, p_text, y = data_helpers_embed.load_data_and_labels(FLAGS)
 
+print(q_text[0])
+print(p_text[0])
+
 # Build vocabulary
 print("Finding maximum length in train data...")
 max_document_length = max([len(p.split(" ")) for p in p_text])
@@ -104,9 +107,20 @@ vocab_processor.fit(np.append(p_text,q_text))
 q = np.array(list(vocab_processor.transform(q_text)))
 p = np.array(list(vocab_processor.transform(p_text)))
 
+print(q[0])
+print(p[0])
+vocab_dict = vocab_processor.vocabulary_._mapping
+print(vocab_dict)
+sorted_vocab = sorted(vocab_dict.items(), key = lambda x : x[1])
+print(sorted_vocab[0])
+vocabulary = list(list(zip(*sorted_vocab))[0])
+print(vocabulary[:3])
+
 # Load embeddings
 embeddings = data_helpers_embed.load_embeddings(FLAGS.emb_path, vocab_processor)
 print(embeddings.shape)
+
+print(embeddings[0])
 
 # Randomly shuffle data
 print("Randomly shuffling the data.../n")

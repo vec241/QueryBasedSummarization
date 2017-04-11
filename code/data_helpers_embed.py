@@ -101,14 +101,25 @@ def load_embeddings(path,vocab):
     embs = ([x.split(" ") for x in open(path).read().strip().split("\n")])
     print("Creating embedding mapping matrix...")
     words = np.array([x[0] for x in embs])
+    print(words[:10])
     mat = np.array([x[1:] for x in embs]).astype(float)
+    print(mat[0])
     mapped_words = [x[0] for x in vocab.transform(words)]
+    print(mapped_words[:100])
     vocab_size = len(vocab.vocabulary_)
     emb_matrix = np.zeros((vocab_size,mat.shape[1]))
     set_words = set(mapped_words)
     for i in tqdm(range(vocab_size)):
         if i in set_words:
-            emb_matrix[i]=mat[mapped_words.index(i)]
+            # TRY : SET emb_matrix[0] to zeros. MIGHT BE WRONG WAY TO DO
+            #if i !=0:
+                #emb_matrix[i]=mat[mapped_words.index(i)]
+            if i == 0:
+                print("i=0")
+                print(emb_matrix[i])
+                print(mapped_words.index(i))
+                print(mat[mapped_words.index(i)])
+
     return emb_matrix
 
 

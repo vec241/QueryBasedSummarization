@@ -21,7 +21,7 @@ class Model(object):
 
         # Embedding layer
         with tf.name_scope("embedding_text"):
-
+            '''
             # Create the matrix of embeddings of all words in vocab
             if use_emb:
                 self.train_W = tf.Variable(
@@ -35,6 +35,8 @@ class Model(object):
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                     name="W")
+            '''
+            self.W = self.W_emb
 
             # Map word IDs to word embeddings
             self.input_q_emb = tf.nn.embedding_lookup(self.W, self.input_q)
