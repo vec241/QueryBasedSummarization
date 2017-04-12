@@ -21,13 +21,13 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "simple_attention_concat_nn_embed", "Specify which model to use")
+tf.flags.DEFINE_string("model", "baseline_concat_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , simple_attention_concat_nn_embed
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
-tf.flags.DEFINE_string("dataset_size", "medium", "short, medium or full")
+tf.flags.DEFINE_string("dataset_size", "medium_balanced", "short, medium, medium_balanced, or full")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("emb_path", "../../glove/glove.6B.100d.txt","Path to word embeddings")
+tf.flags.DEFINE_string("emb_path", "../../glove/glove.6B.50d.txt","Path to word embeddings")
 tf.flags.DEFINE_string("short_labels", "../../data/short_fold0_600K_labels.csv", "labels")
 tf.flags.DEFINE_string("short_query_text", "../../data/short_fold0_600K_query_text.csv", "query_text")
 tf.flags.DEFINE_string("short_paragraph_text", "../../data/short_fold0_600K_paragraph_text.csv", "paragraph_text")
@@ -37,7 +37,9 @@ tf.flags.DEFINE_string("medium_paragraph_text", "../../data/medium_fold0_600K_pa
 tf.flags.DEFINE_string("full_labels", "../../data/fold0_600K_labels.csv", "labels")
 tf.flags.DEFINE_string("full_query_text", "../../data/fold0_600K_query_text.csv", "query_text")
 tf.flags.DEFINE_string("full_paragraph_text", "../../data/fold0_600K_paragraph_text.csv", "paragraph_text")
-
+tf.flags.DEFINE_string("medium_balanced_labels", "../../data/balanced_medium_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("medium_balanced_query_text", "../../data/balanced_medium_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("medium_balanced_paragraph_text", "../../data/balanced_medium_fold0_600K_paragraph_text.csv", "paragraph_text")
 
 # Model Hyperparameters
 #tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
@@ -107,21 +109,24 @@ vocab_processor.fit(np.append(p_text,q_text))
 q = np.array(list(vocab_processor.transform(q_text)))
 p = np.array(list(vocab_processor.transform(p_text)))
 
-print(q[0])
-print(p[0])
+print("q[0] : ",q[0])
+print("p[0] : ",p[0])
 vocab_dict = vocab_processor.vocabulary_._mapping
-print(vocab_dict)
+#print("vocab_dict",vocab_dict)
 sorted_vocab = sorted(vocab_dict.items(), key = lambda x : x[1])
-print(sorted_vocab[0])
+print("sorted_vocab[0] : ",sorted_vocab[0])
 vocabulary = list(list(zip(*sorted_vocab))[0])
-print(vocabulary[:3])
+print("vocabulary[:3] : ",vocabulary[:3])
 
 # Load embeddings
 embeddings = data_helpers_embed.load_embeddings(FLAGS.emb_path, vocab_processor)
-print(embeddings.shape)
+print("embeddings[0] before : ",embeddings[0])
+embeddings[0]=  np.zeros((1,embeddings.shape[1]))#mat[mapped_words.index(i)]
 
-print(embeddings[0])
+print("embeddings.shape : ",embeddings.shape)
 
+print("embeddings[0] after : ",embeddings[0])
+print("embeddings[1] : ",embeddings[1])
 # Randomly shuffle data
 print("Randomly shuffling the data.../n")
 c = list(zip(q, p, y))
@@ -252,12 +257,17 @@ with tf.Graph().as_default():
               model.W_emb: embeddings,
               model.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy, y_true, y_pred = sess.run(
-                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions],
+            step, summaries, loss, accuracy, y_true, y_pred,W_2nd_row, input_q_CBOW_new, w3 = sess.run(
+                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.W_2nd_row, model.input_q_CBOW_new, model.W3],
                 feed_dict)
+            #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
             precision = precision_score(y_true, y_pred)
             recall = recall_score(y_true, y_pred)
+            #print("input_q_CBOW_new : ",input_q_CBOW_new)
+            #print("W_2nd_row : ", W_2nd_row)
+            #print("W3_learned : ", w3)
+            #print("W3_learned shapoe: ", w3.shape)
             print("{}: step {}, loss {:g}, acc {:g}, precision {:g}, recall {:g}".format(time_str, step, loss, accuracy, precision, recall))
             if writer:
                 writer.add_summary(summaries, step)

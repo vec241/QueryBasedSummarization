@@ -21,7 +21,7 @@ class Model(object):
 
         # Embedding layer
         with tf.name_scope("embedding_text"):
-
+            """
             # Create the matrix of embeddings of all words in vocab
             if use_emb:
                 self.train_W = tf.Variable(
@@ -35,14 +35,54 @@ class Model(object):
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                     name="W")
+            """
+            self.W = self.W_emb
+            self.W_2nd_row = tf.gather(self.W , 1)
+            """
+            #get non zero element
+            tf.where(tf.equal(tf.reduce_sum(tf.abs(self.W_emb),1),0), self.train_W, self.W_emb)
+
+            """
+            zero_t = tf.constant(0, dtype=tf.int32)
+            one_t = tf.constant(1, dtype=tf.int32)
+            #mask_ones = tf.ones(self.input_q.get_shape(), tf.int32)
+            #mask_zeros = tf.zeros(self.input_q.get_shape(), tf.int32)
+            mask_input_q = tf.equal(self.input_q,zero_t)#,zero_t,one_t )
+            mask_input_p = tf.equal(self.input_p,zero_t)
+            #mask_input_q = tf.where(tf.equal(self.input_q,zero_t),zero_t,one_t )
+            mask_input_q_non_zero = tf.reduce_sum(tf.cast(mask_input_q, tf.float32),1)
+            mask_input_p_non_zero = tf.reduce_sum(tf.cast(mask_input_p, tf.float32),1)
+            mask_input_q_non_zero = tf.expand_dims(mask_input_q_non_zero,1)
+            #mask_input_q_non_zero.eval()
+            mask_input_p_non_zero = tf.expand_dims(mask_input_p_non_zero,1)
+            #mask_input_p_non_zero.eval()
+            #mask_input_q_indices = tf.where(mask_input_q)
+            print("mask_input_q :", mask_input_q)
+            print("mask_input_q_non_zero :", mask_input_q_non_zero)
+            # Print elements of q,p
+            print("tf.gather(self.input_q, 0) ", tf.gather(self.input_q, 0))
+            print("tf.gather(self.input_p, 0) ", tf.gather(self.input_p, 0))
 
             # Map word IDs to word embeddings
             self.input_q_emb = tf.nn.embedding_lookup(self.W, self.input_q)
             self.input_p_emb = tf.nn.embedding_lookup(self.W, self.input_p)
-
+            #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             # Transform matrix of word embeddings into CBOW (i.e. average along axis that contain the embedded words)
             self.input_q_CBOW = tf.reduce_mean(self.input_q_emb,1, name="input_q_CBOW")
             self.input_p_CBOW = tf.reduce_mean(self.input_p_emb,1, name="input_p_CBOW")
+
+            #New CBOW
+            self.input_q_sum = tf.reduce_sum(self.input_q_emb,1, name="input_q_sum")
+            self.input_p_sum = tf.reduce_sum(self.input_p_emb,1, name="input_p_sum")
+            print("input_q_sum :", self.input_q_sum)
+            self.input_q_CBOW_new =  tf.div(self.input_q_sum ,mask_input_q_non_zero)
+            self.input_p_CBOW_new =  tf.div(self.input_p_sum ,mask_input_p_non_zero)
+            print("input_q_CBOW_new :", self.input_q_CBOW_new)
+            print("input_p_CBOW_new :", self.input_p_CBOW_new)
+            #self.input_p_CBOW_new
+
+
+
 
             # OPTIONAL : add dropout on the embeddings
             #self.input_q_CBOW_dropout = tf.nn.dropout(self.input_q_CBOW,self.dropout_keep_prob)
@@ -60,7 +100,7 @@ class Model(object):
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
-            self.concatenated_input = tf.concat([self.input_q_CBOW, self.input_p_CBOW], 1,name="concatenated_input")
+            self.concatenated_input = tf.concat([self.input_q_CBOW_new, self.input_p_CBOW_new], 1,name="concatenated_input")
             self.scores = self.multilayer_perceptron(self.concatenated_input,
                             n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
@@ -84,6 +124,8 @@ class Model(object):
             initializer=tf.contrib.layers.xavier_initializer())
         W = tf.nn.dropout(W, dropout_keep_prob)
         out_lay = tf.add(tf.matmul(x, W), b)
+        #v.name == "foo/v:0"
+        self.W3 = W
         return out_lay
 
 

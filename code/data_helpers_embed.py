@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 import itertools
+import sys
 from collections import Counter
 import pickle
 import os.path
@@ -47,6 +48,10 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
         q_path = FLAGS.full_query_text
         p_path = FLAGS.full_paragraph_text
         y_path = FLAGS.full_labels
+    elif FLAGS.dataset_size == 'medium_balanced':
+        q_path = FLAGS.medium_balanced_query_text
+        p_path = FLAGS.medium_balanced_paragraph_text
+        y_path = FLAGS.medium_balanced_labels
     else:
         print("Please define size of dataset to use")
         sys.exit()
@@ -101,24 +106,26 @@ def load_embeddings(path,vocab):
     embs = ([x.split(" ") for x in open(path).read().strip().split("\n")])
     print("Creating embedding mapping matrix...")
     words = np.array([x[0] for x in embs])
-    print(words[:10])
+    print("glove words[:10]  : ", words[:10])
     mat = np.array([x[1:] for x in embs]).astype(float)
-    print(mat[0])
+    print("glove vector [0] : ", mat[0])
     mapped_words = [x[0] for x in vocab.transform(words)]
-    print(mapped_words[:100])
+    print("glove mapped_words",mapped_words[:100])   #lots of 0 for special symbols
     vocab_size = len(vocab.vocabulary_)
     emb_matrix = np.zeros((vocab_size,mat.shape[1]))
     set_words = set(mapped_words)
+    print("mapped_words.index[0] :",mapped_words.index(0))
+    print("mat[0] :",mat[mapped_words.index(0)])
+    print("words[0] :",words[mapped_words.index(0)])
     for i in tqdm(range(vocab_size)):
         if i in set_words:
-            # TRY : SET emb_matrix[0] to zeros. MIGHT BE WRONG WAY TO DO
-            #if i !=0:
-                #emb_matrix[i]=mat[mapped_words.index(i)]
+            emb_matrix[i]=mat[mapped_words.index(i)]
+            """
             if i == 0:
                 print("i=0")
-                print(emb_matrix[i])
-                print(mapped_words.index(i))
-                print(mat[mapped_words.index(i)])
+                print("emb_matrix[0] : ", emb_matrix[i])
+                print("mapped_words.index(0) : ",mapped_words.index(i))
+                print("mat[mapped_words.index(0)] : ",mat[mapped_words.index(i)]) #doesnt make sense"""
 
     return emb_matrix
 
