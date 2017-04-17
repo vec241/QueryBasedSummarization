@@ -18,7 +18,7 @@ class Model(object):
         self.input_y = tf.placeholder(tf.int32, [None, num_classes], name="input_y")
         self.W_emb = tf.placeholder(tf.float32,[vocab_size, embedding_size], name="emb_pretrained")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
-
+        self.input_q_01 = tf.gather(self.input_q , 1)
         # Embedding layer
         with tf.name_scope("embedding_text"):
             """
@@ -38,6 +38,7 @@ class Model(object):
             """
             self.W = self.W_emb
             self.W_2nd_row = tf.gather(self.W , 1)
+
             """
             #get non zero element
             tf.where(tf.equal(tf.reduce_sum(tf.abs(self.W_emb),1),0), self.train_W, self.W_emb)
@@ -53,6 +54,7 @@ class Model(object):
             mask_input_q_non_zero = tf.reduce_sum(tf.cast(mask_input_q, tf.float32),1)
             mask_input_p_non_zero = tf.reduce_sum(tf.cast(mask_input_p, tf.float32),1)
             mask_input_q_non_zero = tf.expand_dims(mask_input_q_non_zero,1)
+            self.mask_input_q_nonzero = mask_input_q_non_zero
             #mask_input_q_non_zero.eval()
             mask_input_p_non_zero = tf.expand_dims(mask_input_p_non_zero,1)
             #mask_input_p_non_zero.eval()
@@ -66,6 +68,7 @@ class Model(object):
             # Map word IDs to word embeddings
             self.input_q_emb = tf.nn.embedding_lookup(self.W, self.input_q)
             self.input_p_emb = tf.nn.embedding_lookup(self.W, self.input_p)
+            self.input_q_emb_01 = tf.gather(self.input_q_emb, 1)
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             # Transform matrix of word embeddings into CBOW (i.e. average along axis that contain the embedded words)
             self.input_q_CBOW = tf.reduce_mean(self.input_q_emb,1, name="input_q_CBOW")
@@ -73,9 +76,12 @@ class Model(object):
 
             #New CBOW
             self.input_q_sum = tf.reduce_sum(self.input_q_emb,1, name="input_q_sum")
+            self.input_q_sum_01 = tf.gather(self.input_q_sum, 1)
             self.input_p_sum = tf.reduce_sum(self.input_p_emb,1, name="input_p_sum")
             print("input_q_sum :", self.input_q_sum)
             self.input_q_CBOW_new =  tf.div(self.input_q_sum ,mask_input_q_non_zero)
+            self.input_q_CBOW_new_01 = tf.gather(self.input_q_CBOW_new, 1)
+            self.input_q_CBOW_new_02 = tf.gather(self.input_q_CBOW_new, 2)
             self.input_p_CBOW_new =  tf.div(self.input_p_sum ,mask_input_p_non_zero)
             print("input_q_CBOW_new :", self.input_q_CBOW_new)
             print("input_p_CBOW_new :", self.input_p_CBOW_new)
@@ -101,6 +107,7 @@ class Model(object):
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
             self.concatenated_input = tf.concat([self.input_q_CBOW_new, self.input_p_CBOW_new], 1,name="concatenated_input")
+            print("self.concatenated_input : ", self.concatenated_input)
             self.scores = self.multilayer_perceptron(self.concatenated_input,
                             n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
@@ -120,22 +127,37 @@ class Model(object):
     def nn_layer(self, x, W_shape, bias_shape, dropout_keep_prob):
         W = tf.get_variable("weights", W_shape,
             initializer=tf.contrib.layers.xavier_initializer())
+        W = tf.Print(W,[W]," nn layer W :")
         b = tf.get_variable("biases", bias_shape,
             initializer=tf.contrib.layers.xavier_initializer())
+        b = tf.Print(b,[b]," nn layer b :")
         W = tf.nn.dropout(W, dropout_keep_prob)
-        out_lay = tf.add(tf.matmul(x, W), b)
+        out_lay = tf.matmul(x, W)
+        out_lay = tf.Print(out_lay,[out_lay]," nn layer out_lay :")
+        #out_lay = tf.add(tf.matmul(x, W), b)
         #v.name == "foo/v:0"
-        self.W3 = W
-        return out_lay
+        #self.W3 = W
+        return out_lay, W
 
 
     def multilayer_perceptron(self, x, n_input, n_hidden_1, n_hidden_2, n_classes, dropout_keep_prob):
-        with tf.variable_scope("layer_1"):
-            out_lay1 = self.nn_layer(x, [n_input, n_hidden_1], [n_hidden_1], dropout_keep_prob)
+        """with tf.variable_scope("layer_1"):
+            out_lay1,W1 = self.nn_layer(x, [n_input, n_hidden_1], [n_hidden_1], dropout_keep_prob)
+            self.W1 = W1
             out_lay1 = tf.nn.relu(out_lay1)
+            self.outlay1 = out_lay1
         with tf.variable_scope("layer_2"):
-            out_lay2 = self.nn_layer(out_lay1, [n_hidden_1, n_hidden_2], [n_hidden_2], dropout_keep_prob)
-            out_lay2 = tf.nn.relu(out_lay2)
+            out_lay2,W2 = self.nn_layer(out_lay1, [n_hidden_1, n_hidden_2], [n_hidden_2], dropout_keep_prob)
+            self.W2 = W2
+            #out_lay2 = tf.nn.relu(out_lay2)
+            self.outlay2 = out_lay2
         with tf.variable_scope("out_lay"):
-            out_lay = self.nn_layer(out_lay2, [n_hidden_2, n_classes], [n_classes], dropout_keep_prob)
-        return out_lay
+            out_lay,W3 = self.nn_layer(out_lay2, [n_hidden_2, n_classes], [n_classes], dropout_keep_prob)
+            self.W3 = W3
+        return out_lay"""
+        with tf.variable_scope("layer_1"):
+            out_lay1,W1 = self.nn_layer(x, [n_input,n_classes ], [n_classes], dropout_keep_prob)
+            self.W1 = W1
+            out_lay1 = tf.nn.relu(out_lay1)
+            self.outlay1 = out_lay1
+        return out_lay1

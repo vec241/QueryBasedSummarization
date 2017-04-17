@@ -104,11 +104,16 @@ def load_embeddings(path,vocab):
     """
     print("Loading embeddings...")
     embs = ([x.split(" ") for x in open(path).read().strip().split("\n")])
+    #print("glove vector 143 : ", embs[143])
     print("Creating embedding mapping matrix...")
     words = np.array([x[0] for x in embs])
+    words_list = words.tolist()
+    state_index = words_list.index('state')
+    print("index of state  : ",state_index)
+    #print("glove words 143  : ", words[143])
     print("glove words[:10]  : ", words[:10])
     mat = np.array([x[1:] for x in embs]).astype(float)
-    print("glove vector [0] : ", mat[0])
+    print("glove vector 'word : state' : ", mat[state_index])
     mapped_words = [x[0] for x in vocab.transform(words)]
     print("glove mapped_words",mapped_words[:100])   #lots of 0 for special symbols
     vocab_size = len(vocab.vocabulary_)
