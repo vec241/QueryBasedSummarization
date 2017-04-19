@@ -46,6 +46,8 @@ class Model(object):
             """
             zero_t = tf.constant(0, dtype=tf.int32)
             one_t = tf.constant(1, dtype=tf.int32)
+
+            #ten_t = tf.expand_dims(ten_t,1)
             #mask_ones = tf.ones(self.input_q.get_shape(), tf.int32)
             #mask_zeros = tf.zeros(self.input_q.get_shape(), tf.int32)
             mask_input_q = tf.equal(self.input_q,zero_t)#,zero_t,one_t )
@@ -54,13 +56,31 @@ class Model(object):
             mask_input_q_non_zero = tf.reduce_sum(tf.cast(mask_input_q, tf.float32),1)
             mask_input_p_non_zero = tf.reduce_sum(tf.cast(mask_input_p, tf.float32),1)
             mask_input_q_non_zero = tf.expand_dims(mask_input_q_non_zero,1)
-            self.mask_input_q_nonzero = mask_input_q_non_zero
-            #mask_input_q_non_zero.eval()
             mask_input_p_non_zero = tf.expand_dims(mask_input_p_non_zero,1)
+            print("mask_input_p_non_zero size :",tf.shape(mask_input_p_non_zero), " : ",mask_input_p_non_zero.get_shape())
+            print("mask_input_q_non_zero size :",tf.shape(mask_input_q_non_zero), " : ",mask_input_q_non_zero.get_shape())
+            #subtract from 10
+            #ten_t_q = tf.constant(10.0, shape= tf.shape(mask_input_q_non_zero), dtype=tf.float32)
+            #ten_t_p = tf.constant(10.0, shape= tf.shape(mask_input_p_non_zero), dtype=tf.float32)
+
+            #mask_input_q_non_zero = ten_t_q - mask_input_q_non_zero
+            #mask_input_p_non_zero = ten_t_p - mask_input_p_non_zero
+
+
+            #mask_input_q_non_zero.eval()
+            #mask_input_p_non_zero = tf.expand_dims(mask_input_p_non_zero,1)
             #mask_input_p_non_zero.eval()
             #mask_input_q_indices = tf.where(mask_input_q)
             print("mask_input_q :", mask_input_q)
             print("mask_input_q_non_zero :", mask_input_q_non_zero)
+            print("mask_input_p_non_zero :", mask_input_p_non_zero)
+
+            function_to_map = lambda x : 10.0 - x    # Where `f` instantiates myCustomOp.
+            mask_input_p_non_zero = tf.map_fn(function_to_map, mask_input_p_non_zero)
+            mask_input_q_non_zero = tf.map_fn(function_to_map, mask_input_q_non_zero)
+
+            self.mask_input_q_nonzero = mask_input_q_non_zero
+
             # Print elements of q,p
             print("tf.gather(self.input_q, 0) ", tf.gather(self.input_q, 0))
             print("tf.gather(self.input_p, 0) ", tf.gather(self.input_p, 0))
@@ -110,6 +130,8 @@ class Model(object):
             print("self.concatenated_input : ", self.concatenated_input)
             self.scores = self.multilayer_perceptron(self.concatenated_input,
                             n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
+            function_to_score = lambda x : x + (10.0**(-4))  # Where `f` instantiates myCustomOp.
+            self.scores = tf.map_fn(function_to_score, self.scores)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
             self.y_true = tf.argmax(self.input_y, 1, name="y_true")
 
@@ -156,8 +178,14 @@ class Model(object):
             self.W3 = W3
         return out_lay"""
         with tf.variable_scope("layer_1"):
-            out_lay1,W1 = self.nn_layer(x, [n_input,n_classes ], [n_classes], dropout_keep_prob)
+            out_lay1,W1 = self.nn_layer(x, [n_input,n_hidden_1 ], [n_hidden_1], dropout_keep_prob)
             self.W1 = W1
+            self.outlay1_before = out_lay1
             out_lay1 = tf.nn.relu(out_lay1)
             self.outlay1 = out_lay1
-        return out_lay1
+        with tf.variable_scope("layer_2"):
+            out_lay2,W2 = self.nn_layer(out_lay1, [n_hidden_1, n_classes], [n_classes], dropout_keep_prob)
+            self.W2 = W2
+            out_lay2 = tf.nn.relu(out_lay2)
+            self.outlay2 = out_lay2
+        return out_lay2

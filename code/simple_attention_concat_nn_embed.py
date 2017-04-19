@@ -123,10 +123,10 @@ class Model(object):
     def multilayer_perceptron(self, x, n_input, n_hidden_1, n_hidden_2, n_classes, dropout_keep_prob):
         with tf.variable_scope("layer_1"):
             out_lay1 = self.nn_layer(x, [n_input, n_hidden_1], [n_hidden_1], dropout_keep_prob)
-            out_lay1 = tf.nn.relu(out_lay1)
+            out_lay1 = tf.nn.tanh(out_lay1)
         with tf.variable_scope("layer_2"):
             out_lay2 = self.nn_layer(out_lay1, [n_hidden_1, n_hidden_2], [n_hidden_2], dropout_keep_prob)
-            out_lay2 = tf.nn.relu(out_lay2)
+            out_lay2 = tf.nn.tanh(out_lay2)
         with tf.variable_scope("out_lay"):
             out_lay = self.nn_layer(out_lay2, [n_hidden_2, n_classes], [n_classes], dropout_keep_prob)
         return out_lay

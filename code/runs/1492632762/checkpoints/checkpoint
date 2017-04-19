@@ -1,0 +1,6 @@
+model_checkpoint_path: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-800"
+all_model_checkpoint_paths: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-400"
+all_model_checkpoint_paths: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-500"
+all_model_checkpoint_paths: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-600"
+all_model_checkpoint_paths: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-700"
+all_model_checkpoint_paths: "/Users/urjit/NYU/Independent_study_Cho/github/QueryBasedSummarization/code/runs/1492632762/checkpoints/model-800"
