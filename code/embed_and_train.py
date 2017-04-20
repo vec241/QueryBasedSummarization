@@ -23,7 +23,7 @@ from sklearn.metrics import precision_score, recall_score
 # Which model, which embedding method and which data size to use
 tf.flags.DEFINE_string("model", "baseline_concat_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , simple_attention_concat_nn_embed
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
-tf.flags.DEFINE_string("dataset_size", "short_balanced", "short_balanced, medium_balanced, or full_balanced")
+tf.flags.DEFINE_string("dataset_size", "medium_balanced", "short_balanced, medium_balanced, or full_balanced")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -354,8 +354,8 @@ with tf.Graph().as_default():
             print("dev Predictions : ", pred)
             print("dev loss : ", loss)
             '''
-            print("p_zero : ", mask_input_p_zero)
-            print("p_nonzero : ", p_nonzero)
+            #print("p_zero : ", mask_input_p_zero)
+            #print("p_nonzero : ", p_nonzero)
 
             #print("input p :", input_p)
             #print("input p06 :", p06)
@@ -368,7 +368,7 @@ with tf.Graph().as_default():
                 #print("input p07 :", p07)
                 #print("input p :", input_p)
             #    print('concatenated_input', concatenated_input[i])
-            print("outlay1 : ",outlay1)
+            #print("outlay1 : ",outlay1)
             print("{}: step {}, loss {:g}, acc {:g}, precision {:g}, recall {:g}".format(time_str, step, loss, accuracy, precision, recall))
             if writer:
                 writer.add_summary(summaries, step)

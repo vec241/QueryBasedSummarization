@@ -49,7 +49,8 @@ class Model(object):
             """
             zero_t = tf.constant(0, dtype=tf.int32)
             one_t = tf.constant(1, dtype=tf.int32)
-
+            one_f = tf.constant(1, dtype=tf.float32)
+            maxlen_t = tf.constant(max_length, dtype=tf.float32)
             #ten_t = tf.expand_dims(ten_t,1)
             #mask_ones = tf.ones(self.input_q.get_shape(), tf.int32)
             #mask_zeros = tf.zeros(self.input_q.get_shape(), tf.int32)
@@ -77,9 +78,12 @@ class Model(object):
             print("mask_input_q_non_zero :", mask_input_q_non_zero)
             print("mask_input_p_non_zero :", mask_input_p_non_zero)
 
-            function_to_map = lambda x : max_length - x if x != float(max_length) else 1.0   # Where `f` instantiates myCustomOp.
-            check = lambda x : print(x) if x != float(max_length) else print(x)
-            trash = tf.map_fn(check, mask_input_p_non_zero)
+            #tf.where(tf.equal(tf.reduce_sum(tf.abs(self.W_emb),1),0), self.train_W, self.W_emb)
+            #function_to_map = tf.where(tf.equal(x,maxlen_t), one_f, max_length - x )
+            function_to_map = lambda x : max_length - x + 1 if  x != maxlen_t else one_f   # Where `f` instantiates myCustomOp.
+
+            #check = lambda x : print(x) if x != float(max_length) else print(x)
+            #trash = tf.map_fn(check, mask_input_p_non_zero)
             print('function_to_map(0) : ', function_to_map(50))
             print('function_to_map(45) : ', function_to_map(45))
             mask_input_p_non_zero = tf.map_fn(function_to_map, mask_input_p_non_zero)
