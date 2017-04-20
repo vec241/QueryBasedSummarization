@@ -19,6 +19,9 @@ class Model(object):
         self.W_emb = tf.placeholder(tf.float32,[vocab_size, embedding_size], name="emb_pretrained")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
         self.input_q_01 = tf.gather(self.input_q , 1)
+        self.input_p_06 = tf.gather(self.input_p , 6)
+        self.input_p_07 = tf.gather(self.input_p , 7)
+        self.input_p_08 = tf.gather(self.input_p , 8)
         # Embedding layer
         with tf.name_scope("embedding_text"):
             """
@@ -62,10 +65,9 @@ class Model(object):
             #subtract from 10
             #ten_t_q = tf.constant(10.0, shape= tf.shape(mask_input_q_non_zero), dtype=tf.float32)
             #ten_t_p = tf.constant(10.0, shape= tf.shape(mask_input_p_non_zero), dtype=tf.float32)
-
             #mask_input_q_non_zero = ten_t_q - mask_input_q_non_zero
             #mask_input_p_non_zero = ten_t_p - mask_input_p_non_zero
-
+            self.mask_input_p_zero = mask_input_p_non_zero
 
             #mask_input_q_non_zero.eval()
             #mask_input_p_non_zero = tf.expand_dims(mask_input_p_non_zero,1)
@@ -75,11 +77,17 @@ class Model(object):
             print("mask_input_q_non_zero :", mask_input_q_non_zero)
             print("mask_input_p_non_zero :", mask_input_p_non_zero)
 
-            function_to_map = lambda x : 10.0 - x    # Where `f` instantiates myCustomOp.
+            function_to_map = lambda x : max_length - x if x != float(max_length) else 1.0   # Where `f` instantiates myCustomOp.
+            check = lambda x : print(x) if x != float(max_length) else print(x)
+            trash = tf.map_fn(check, mask_input_p_non_zero)
+            print('function_to_map(0) : ', function_to_map(50))
+            print('function_to_map(45) : ', function_to_map(45))
             mask_input_p_non_zero = tf.map_fn(function_to_map, mask_input_p_non_zero)
             mask_input_q_non_zero = tf.map_fn(function_to_map, mask_input_q_non_zero)
 
             self.mask_input_q_nonzero = mask_input_q_non_zero
+            self.mask_input_p_nonzero = mask_input_p_non_zero
+
 
             # Print elements of q,p
             print("tf.gather(self.input_q, 0) ", tf.gather(self.input_q, 0))
@@ -149,14 +157,14 @@ class Model(object):
     def nn_layer(self, x, W_shape, bias_shape, dropout_keep_prob):
         W = tf.get_variable("weights", W_shape,
             initializer=tf.contrib.layers.xavier_initializer())
-        W = tf.Print(W,[W]," nn layer W :")
+        #W = tf.Print(W,[W]," nn layer W :")
         b = tf.get_variable("biases", bias_shape,
             initializer=tf.contrib.layers.xavier_initializer())
-        b = tf.Print(b,[b]," nn layer b :")
+        #b = tf.Print(b,[b]," nn layer b :")
         W = tf.nn.dropout(W, dropout_keep_prob)
         out_lay = tf.matmul(x, W)
-        out_lay = tf.Print(out_lay,[out_lay]," nn layer out_lay :")
         #out_lay = tf.add(tf.matmul(x, W), b)
+        #out_lay = tf.Print(out_lay,[out_lay]," nn layer out_lay :")
         #v.name == "foo/v:0"
         #self.W3 = W
         return out_lay, W
@@ -177,15 +185,27 @@ class Model(object):
             out_lay,W3 = self.nn_layer(out_lay2, [n_hidden_2, n_classes], [n_classes], dropout_keep_prob)
             self.W3 = W3
         return out_lay"""
+        '''
         with tf.variable_scope("layer_1"):
             out_lay1,W1 = self.nn_layer(x, [n_input,n_hidden_1 ], [n_hidden_1], dropout_keep_prob)
             self.W1 = W1
             self.outlay1_before = out_lay1
-            out_lay1 = tf.nn.relu(out_lay1)
+            #out_lay1 = tf.nn.relu(out_lay1)
+            out_lay1 = tf.tanh(out_lay1)
             self.outlay1 = out_lay1
         with tf.variable_scope("layer_2"):
             out_lay2,W2 = self.nn_layer(out_lay1, [n_hidden_1, n_classes], [n_classes], dropout_keep_prob)
             self.W2 = W2
-            out_lay2 = tf.nn.relu(out_lay2)
+            #out_lay2 = tf.nn.relu(out_lay2)
+            out_lay2 = tf.tanh(out_lay2)
             self.outlay2 = out_lay2
         return out_lay2
+        '''
+        with tf.variable_scope("layer_1"):
+            out_lay1,W1 = self.nn_layer(x, [n_input, n_classes], [n_classes], dropout_keep_prob)
+            self.W1 = W1
+            self.outlay1_before = out_lay1
+            #out_lay1 = tf.nn.relu(out_lay1)
+            out_lay1 = tf.tanh(out_lay1)
+            self.outlay1 = out_lay1
+        return out_lay1

@@ -36,18 +36,14 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
     """
     Loads data from file and generates labels.
     """
-    if FLAGS.dataset_size == 'short':
-        q_path = FLAGS.short_query_text
-        p_path = FLAGS.short_paragraph_text
-        y_path = FLAGS.short_labels
-    elif FLAGS.dataset_size == 'medium':
-        q_path = FLAGS.medium_query_text
-        p_path = FLAGS.medium_paragraph_text
-        y_path = FLAGS.medium_labels
-    elif FLAGS.dataset_size == 'full':
-        q_path = FLAGS.full_query_text
-        p_path = FLAGS.full_paragraph_text
-        y_path = FLAGS.full_labels
+    if FLAGS.dataset_size == 'short_balanced':
+        q_path = FLAGS.short_balanced_query_text
+        p_path = FLAGS.short_balanced_paragraph_text
+        y_path = FLAGS.short_balanced_labels
+    elif FLAGS.dataset_size == 'full_balanced':
+        q_path = FLAGS.full_balanced_query_text
+        p_path = FLAGS.full_balanced_paragraph_text
+        y_path = FLAGS.full_balanced_labels
     elif FLAGS.dataset_size == 'medium_balanced':
         q_path = FLAGS.medium_balanced_query_text
         p_path = FLAGS.medium_balanced_paragraph_text

@@ -1,0 +1,3 @@
+model_checkpoint_path: "/Users/vincentchabot/Documents/Academique/NYU/Cours NYU/ResearchProject/QueryBasedSummarization/code/runs/1492635697/checkpoints/model-200"
+all_model_checkpoint_paths: "/Users/vincentchabot/Documents/Academique/NYU/Cours NYU/ResearchProject/QueryBasedSummarization/code/runs/1492635697/checkpoints/model-100"
+all_model_checkpoint_paths: "/Users/vincentchabot/Documents/Academique/NYU/Cours NYU/ResearchProject/QueryBasedSummarization/code/runs/1492635697/checkpoints/model-200"
