@@ -21,7 +21,7 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "baseline_concat_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , simple_attention_concat_nn_embed
+tf.flags.DEFINE_string("model", "baseline_sub_mult_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , baseline_sub_mult_nn_embed
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
 tf.flags.DEFINE_string("dataset_size", "medium_balanced", "short_balanced, medium_balanced, or full_balanced")
 
@@ -43,13 +43,13 @@ tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/balanced_full
 #tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 1, "Dropout keep probability (default: 0.5)")
+tf.flags.DEFINE_float("dropout_keep_prob", 0.7, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 tf.flags.DEFINE_float("learning_rate", 1e-3, "Learning rate (default: 1e-3)")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 50, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
@@ -177,10 +177,6 @@ with tf.Graph().as_default():
             num_filters=FLAGS.num_filters,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
 
-        # Output directory for models and summaries
-        timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join("../../runs", timestamp))  #os.path.curdir,"runs", timestamp
-        print("Writing to {}\n".format(out_dir))
 
         print("Defined Model\n")
         # Define Training procedure
@@ -232,13 +228,16 @@ with tf.Graph().as_default():
                 grad_summaries.append(sparsity_summary)
         grad_summaries_merged = tf.summary.merge(grad_summaries)
         #grad_summaries_merged = tf.constant(1)                     #updated
+
+        # Output directory for models and summaries
         timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+        out_dir = os.path.abspath(os.path.join(os.path.curdir, "../../runs", timestamp))
         print("Writing to {}\n".format(out_dir))
         # Output directory for models and summaries
         #timestamp = str(int(time.time()))
         #out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
         #print("Writing to {}\n".format(out_dir))
+
 
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", model.loss)
@@ -284,8 +283,8 @@ with tf.Graph().as_default():
                 [train_op, global_step, model.loss, model.accuracy],
                 feed_dict)
             """
-            _,step, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, input_q_CBOW_new_02,w1, q01, q01_emb, q_sum, p_nonzero,outlay1_before, outlay1, scores, pred , loss, concatenated_input= sess.run(
-                [train_op,global_step,  model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01, model.input_q_CBOW_new_02,model.W1,model.input_q_01,model.input_q_emb_01,model.input_q_sum_01, model.mask_input_p_nonzero, model.outlay1_before, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input],
+            _,step, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, w1, q01, p_nonzero, outlay1, scores, pred , loss, concatenated_input= sess.run(
+                [train_op,global_step,  model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input],
                 feed_dict)  #,model.W2,model.W3 w2,w3,, outlay1, outlay2  , model.outlay1, model.outlay2
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
@@ -303,7 +302,6 @@ with tf.Graph().as_default():
             print("q01_sum : ", q_sum)
             print("q01_nonzero : ", q_nonzero)
             print("input_q_CBOW_new_01 : ",input_q_CBOW_new_01)
-            print("input_q_CBOW_new_02 : ",input_q_CBOW_new_02)
             print("outlay1 before: ",outlay1_before)
             print("outlay1 after: ",outlay1)
             #print("outlay2 : ",outlay2)
@@ -328,8 +326,8 @@ with tf.Graph().as_default():
               model.W_emb: embeddings,
               model.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, input_q_CBOW_new_02,w1, q01,p06,p07,p08, q01_emb, q_sum, p_nonzero, outlay1_before, outlay1, scores, pred , loss, concatenated_input, input_p, mask_input_p_zero= sess.run(
-                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01, model.input_q_CBOW_new_02,model.W1,model.input_q_01,model.input_p_06,model.input_p_07,model.input_p_08,model.input_q_emb_01,model.input_q_sum_01, model.mask_input_p_nonzero,model.outlay1_before, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input, model.input_p, model.mask_input_p_zero],
+            step, summaries, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01,w1, q01,p06,p07,p08, p_nonzero, outlay1, scores, pred , loss, concatenated_input, input_p, outlay= sess.run(
+                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01,model.input_p_06,model.input_p_07,model.input_p_08, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input, model.input_p, model.outlay],
                 feed_dict)  #,model.W2,model.W3 w2,w3, , outlay1, outlay2 , model.outlay1, model.outlay2
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
@@ -346,15 +344,11 @@ with tf.Graph().as_default():
             print("q01_sum : ", q_sum)
             print("q01_nonzero : ", q_nonzero)
             print("dev input_q_CBOW_new_01 : ",input_q_CBOW_new_01)
-            print("dev input_q_CBOW_new_02 : ",input_q_CBOW_new_02)
             print("outlay1 before: ",outlay1_before)
             print("outlay1 : ",outlay1)
             #print("outlay2 : ",outlay2)
-            print("dev scores : ",scores)
-            print("dev Predictions : ", pred)
             print("dev loss : ", loss)
             '''
-            #print("p_zero : ", mask_input_p_zero)
             #print("p_nonzero : ", p_nonzero)
 
             #print("input p :", input_p)
@@ -367,8 +361,16 @@ with tf.Graph().as_default():
                 #print("input p06 :", p06)
                 #print("input p07 :", p07)
                 #print("input p :", input_p)
+
             #    print('concatenated_input', concatenated_input[i])
-            #print("outlay1 : ",outlay1)
+            #print("q01 : ", q01)
+            #print("dev input_q_CBOW_new_01 : ",input_q_CBOW_new_01)
+            #print("dev outlay1 : ", outlay1)
+            print("50 first dev scores : ", scores[:50])
+            #print("dev Predictions : ")
+            #for i in range(len(scores)):
+            #    print(scores[i])
+
             print("{}: step {}, loss {:g}, acc {:g}, precision {:g}, recall {:g}".format(time_str, step, loss, accuracy, precision, recall))
             if writer:
                 writer.add_summary(summaries, step)

@@ -7,8 +7,23 @@ class Model(object):
     Implements a bilinear product between paragraph and query to determine if
     the paragraph is relevant to the query.
     """
-    def __init__(self, num_classes, embedding_size, filter_sizes, num_filters,
-      l2_reg_lambda=0.0, vocab_size=None):
+    def __init__(self, num_classes, embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, vocab_size=None):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### PREVIOUS CODE
 
         # Placeholders for input and dropout
         self.input_q = tf.placeholder(tf.float32, [None, embedding_size], name="input_q")
