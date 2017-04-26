@@ -21,7 +21,7 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "baseline_sub_mult_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , baseline_sub_mult_nn_embed
+tf.flags.DEFINE_string("model", "cnn_attention", "Specify which model to use") #baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
 tf.flags.DEFINE_string("dataset_size", "medium_balanced", "short_balanced, medium_balanced, or full_balanced")
 
@@ -42,7 +42,7 @@ tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/balanced_full
 # Model Hyperparameters
 #tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_integer("num_filters", 150, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.7, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 tf.flags.DEFINE_float("learning_rate", 1e-3, "Learning rate (default: 1e-3)")
@@ -83,6 +83,8 @@ elif FLAGS.model == "baseline_concat_nn_embed":
     from baseline_concat_nn_embed import Model
 elif FLAGS.model == "simple_attention_concat_nn_embed":
     from simple_attention_concat_nn_embed import Model
+elif FLAGS.model == "cnn_attention":
+    from cnn_attention import Model
 else:
     print("wrong model defined")
 
@@ -283,9 +285,12 @@ with tf.Graph().as_default():
                 [train_op, global_step, model.loss, model.accuracy],
                 feed_dict)
             """
-            _,step, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, w1, q01, p_nonzero, outlay1, scores, pred , loss, concatenated_input= sess.run(
-                [train_op,global_step,  model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input],
-                feed_dict)  #,model.W2,model.W3 w2,w3,, outlay1, outlay2  , model.outlay1, model.outlay2
+            #_,step, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, w1, q01, p_nonzero, outlay1, scores, pred , loss, concatenated_input= sess.run(
+            #    [train_op,global_step,  model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input],
+            #    feed_dict)  #,model.W2,model.W3 w2,w3,, outlay1, outlay2  , model.outlay1, model.outlay2
+            _,step, loss, accuracy, y_true, y_pred, scores, concatenated_input= sess.run(
+                [train_op, global_step, model.loss, model.accuracy, model.y_true, model.predictions, model.scores,  model.concatenated_input],
+                feed_dict)
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
             precision = precision_score(y_true, y_pred)
@@ -326,9 +331,12 @@ with tf.Graph().as_default():
               model.W_emb: embeddings,
               model.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01,w1, q01,p06,p07,p08, p_nonzero, outlay1, scores, pred , loss, concatenated_input, input_p, outlay= sess.run(
-                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01,model.input_p_06,model.input_p_07,model.input_p_08, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input, model.input_p, model.outlay],
-                feed_dict)  #,model.W2,model.W3 w2,w3, , outlay1, outlay2 , model.outlay1, model.outlay2
+            #step, summaries, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01,w1, q01,p06,p07,p08, p_nonzero, outlay1, scores, pred , loss, concatenated_input, input_p, outlay= sess.run(
+            #    [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01,model.input_p_06,model.input_p_07,model.input_p_08, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input, model.input_p, model.outlay],
+            #    feed_dict)  #,model.W2,model.W3 w2,w3, , outlay1, outlay2 , model.outlay1, model.outlay2
+            step, summaries, loss, accuracy, y_true, y_pred, scores= sess.run(
+                [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.scores],
+                feed_dict)
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
             precision = precision_score(y_true, y_pred)
