@@ -23,21 +23,21 @@ from sklearn.metrics import precision_score, recall_score
 # Which model, which embedding method and which data size to use
 tf.flags.DEFINE_string("model", "cnn_attention", "Specify which model to use") #baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
-tf.flags.DEFINE_string("dataset_size", "medium_balanced", "short_balanced, medium_balanced, or full_balanced")
+tf.flags.DEFINE_string("dataset_size", "short_balanced", "short_balanced, medium_balanced, or full_balanced")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("emb_path", "../../glove/glove.6B.50d.txt","Path to word embeddings")
-tf.flags.DEFINE_string("short_balanced_labels", "../../data/balanced_short_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("short_balanced_query_text", "../../data/balanced_short_fold0_600K_query_text.csv", "query_text")
-tf.flags.DEFINE_string("short_balanced_paragraph_text", "../../data/balanced_short_fold0_600K_paragraph_text.csv", "paragraph_text")
-tf.flags.DEFINE_string("medium_balanced_labels", "../../data/balanced_medium_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("medium_balanced_query_text", "../../data/balanced_medium_fold0_600K_query_text.csv", "query_text")
-tf.flags.DEFINE_string("medium_balanced_paragraph_text", "../../data/balanced_medium_fold0_600K_paragraph_text.csv", "paragraph_text")
-tf.flags.DEFINE_string("full_balanced_labels", "../../data/balanced_full_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("full_balanced_query_text", "../../data/balanced_full_fold0_600K_query_text.csv", "query_text")
-tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/balanced_full_fold0_600K_paragraph_text.csv", "paragraph_text")
-
+tf.flags.DEFINE_string("short_balanced_labels", "../../data/clean_balanced_short_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("short_balanced_query_text", "../../data/clean_balanced_short_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("short_balanced_paragraph_text", "../../data/clean_balanced_short_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("medium_balanced_labels", "../../data/clean_balanced_medium_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("medium_balanced_query_text", "../../data/clean_balanced_medium_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("medium_balanced_paragraph_text", "../../data/clean_balanced_medium_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("full_balanced_labels", "../../data/clean_balanced_full_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("full_balanced_query_text", "../../data/clean_balanced_full_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/clean_balanced_full_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("data_cleaning_flag", True, "data_cleaning_flag")
 
 # Model Hyperparameters
 #tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")

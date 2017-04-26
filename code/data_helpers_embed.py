@@ -32,6 +32,22 @@ def clean_str(string):
     return string.strip().lower()
 '''
 
+def clean_str(string):
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+    string = re.sub(r"\'s", " \'s", string)
+    string = re.sub(r"\'ve", " \'ve", string)
+    string = re.sub(r"n\'t", " n\'t", string)
+    string = re.sub(r"\'re", " \'re", string)
+    string = re.sub(r"\'d", " \'d", string)
+    string = re.sub(r"\'ll", " \'ll", string)
+    string = re.sub(r",", " , ", string)
+    string = re.sub(r"!", " ! ", string)
+    string = re.sub(r"\(", " \( ", string)
+    string = re.sub(r"\)", " \) ", string)
+    string = re.sub(r"\?", " \? ", string)
+    string = re.sub(r"\s{2,}", " ", string)
+    return string.strip().lower()
+
 def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_method
     """
     Loads data from file and generates labels.
@@ -53,14 +69,20 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
         sys.exit()
 
     if os.path.isfile(q_path):
-        print("Loading queries...")
+        print("Loading and cleaning queries...")
         q = np.load(q_path)
+        if FLAGS.data_cleaning_flag is True:
+            q = [clean_str(x) for x in q]
+            print("Queries cleaned !")
     else:
         print("text file not present. Exiting ...")
         sys.exit()
     if os.path.isfile(p_path):
-        print("Loading paragraphs...")
+        print("Loading and cleaning paragraphs...")
         p = np.load(p_path)
+        if FLAGS.data_cleaning_flag is True:
+            p = [clean_str(x) for x in p]
+            print("Paragraph cleaned !")
     else:
         print("text file not present. Exiting ...")
         sys.exit()
