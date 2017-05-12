@@ -21,7 +21,7 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "cnn_att_comp_agr", "Specify which model to use") #cnn_att_sub_mult, cnn_att_comp_agr baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
+tf.flags.DEFINE_string("model", "baseline_concat_nn_embed", "Specify which model to use") #baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
 tf.flags.DEFINE_string("dataset_size", "full_balanced", "short_balanced, medium_balanced, or full_balanced")
 
@@ -43,7 +43,7 @@ tf.flags.DEFINE_string("data_cleaning_flag", True, "data_cleaning_flag")
 #tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 150, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 1.0, "Dropout keep probability (default: 0.5)")
+tf.flags.DEFINE_float("dropout_keep_prob", 0.7, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 tf.flags.DEFINE_float("learning_rate", 1e-3, "Learning rate (default: 1e-3)")
 
@@ -69,19 +69,17 @@ timestamp_val = str(time.time())
 #create output files
 dev_opt_filename = "dev_"+FLAGS.model + timestamp_val + ".csv"
 train_opt_filename =  "train_"+FLAGS.model + timestamp_val + ".csv"
-#dev_output = open("../../runs/"+dev_opt_filename,"a")
-#train_output = open("../../runs/"+train_opt_filename,"a")
-#dev_output.write("step,dev_acc,dev_precision,dev_recall\n")
-#train_output.write("step,train_acc,train_precision,train_recall\n")
 dev_opt_file = "../../runs/"+dev_opt_filename
 train_opt_file = "../../runs/"+train_opt_filename
+#dev_output = open("../../runs/"+dev_opt_filename,"a")
+#train_output = open("../../runs/"+train_opt_filename,"a")
 
-with open(dev_opt_file,"a") as dev_opt:
-        dev_opt.write("step,dev_acc,dev_precision,dev_recall\n")
+with open(dev_opt_file,"a") as dev_opt: 
+	dev_opt.write("step,dev_acc,dev_precision,dev_recall\n")
 
 
 with open(train_opt_file,"a") as train_opt:
-        train_opt.write("step,train_acc,train_precision,train_recall\n")
+       	train_opt.write("step,train_acc,train_precision,train_recall\n")
 
 
 print("\nParameters:")
@@ -105,10 +103,6 @@ elif FLAGS.model == "baseline_concat_nn_embed":
     from baseline_concat_nn_embed import Model
 elif FLAGS.model == "simple_attention_concat_nn_embed":
     from simple_attention_concat_nn_embed import Model
-elif FLAGS.model == "cnn_att_sub_mult":
-    from cnn_attention_sub_mult_nn import Model
-elif FLAGS.model == "cnn_att_comp_agr":
-    from cnn_att_comp_agr import Model
 elif FLAGS.model == "cnn_attention":
     from cnn_attention import Model
 else:
@@ -173,8 +167,8 @@ print("data shuffled !/n")
 # TODO: This is very crude, should use cross-validation
 print("Splitting into train and dev \n")
 
-if FLAGS.dataset_size == "full_balanced":
-    dev_sample_index = -5000
+if FLAGS.dataset_size == "full":
+    dev_sample_index = -15000
 else:
     dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 print("Dev Samples : ",dev_sample_index )
@@ -318,8 +312,8 @@ with tf.Graph().as_default():
             #_,step, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01, w1, q01, p_nonzero, outlay1, scores, pred , loss, concatenated_input= sess.run(
             #    [train_op,global_step,  model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input],
             #    feed_dict)  #,model.W2,model.W3 w2,w3,, outlay1, outlay2  , model.outlay1, model.outlay2
-            _,step, loss, accuracy, y_true, y_pred, scores= sess.run(
-                [train_op, global_step, model.loss, model.accuracy, model.y_true, model.predictions, model.scores],
+            _,step, loss, accuracy, y_true, y_pred, scores, concatenated_input= sess.run(
+                [train_op, global_step, model.loss, model.accuracy, model.y_true, model.predictions, model.scores,  model.concatenated_input],
                 feed_dict)
             #print("sess.run(self.input_q_emb) : ",sess.run(self.input_q_emb))
             time_str = datetime.datetime.now().isoformat()
@@ -327,8 +321,7 @@ with tf.Graph().as_default():
             recall = recall_score(y_true, y_pred)
             opt_line = str(step) + "," + str(accuracy) + "," + str(precision) +","+str(recall)+","+ str(loss)+"\n"
             with open(train_opt_file,"a") as train_opt:
-                    train_opt.write(opt_line)
-	    #train_output.write(opt_line)
+	            train_opt.write(opt_line)
             #print("p_nonzero : ", p_nonzero)
             '''
             #print("W_2nd_row : ", W_2nd_row)
@@ -377,8 +370,8 @@ with tf.Graph().as_default():
             recall = recall_score(y_true, y_pred)
             opt_line = str(step) + "," + str(accuracy) + "," + str(precision) +","+str(recall)+","+ str(loss)+"\n"
             with open(dev_opt_file,"a") as dev_opt:
-                    dev_opt.write(opt_line)
-	    #dev_output.write(opt_line)
+	            dev_opt.write(opt_line)
+	    #with open("../../runs/"+train_opt_filename, “a”) as train_opt:
             '''
             #print("W_2nd_row : ", W_2nd_row)
             print("====================================DEV STEP ========================================")

@@ -21,7 +21,7 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "cnn_att_comp_agr", "Specify which model to use") #cnn_att_sub_mult, cnn_att_comp_agr baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
+tf.flags.DEFINE_string("model", "rnn_attention", "Specify which model to use") #rnn_attention cnn_att_sub_mult, cnn_att_comp_agr baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
 tf.flags.DEFINE_string("dataset_size", "full_balanced", "short_balanced, medium_balanced, or full_balanced")
 
@@ -111,6 +111,8 @@ elif FLAGS.model == "cnn_att_comp_agr":
     from cnn_att_comp_agr import Model
 elif FLAGS.model == "cnn_attention":
     from cnn_attention import Model
+elif FLAGS.model == "rnn_attention":
+    from rnn_attention import Model
 else:
     print("wrong model defined")
 
@@ -177,6 +179,8 @@ if FLAGS.dataset_size == "full_balanced":
     dev_sample_index = -5000
 else:
     dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
+dev_batch_size = - dev_sample_index
+print('dev_batch_size', dev_batch_size)
 print("Dev Samples : ",dev_sample_index )
 q_train, q_dev = q_shuffled[:dev_sample_index], q_shuffled[dev_sample_index:]
 p_train, p_dev = p_shuffled[:dev_sample_index], p_shuffled[dev_sample_index:]
@@ -189,6 +193,15 @@ print ("p_dev.shape :",np.shape(p_dev))
 print ("y_dev.shape :",np.shape(y_dev))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
+#finding extra no of train samples and removing to make it devisible by batch size
+extra_train_samples = len(q_train) % FLAGS.batch_size
+print("extra_train_samples :",extra_train_samples)
+no_train_samples = int(len(q_train) - extra_train_samples)
+print("no_train_samples :",no_train_samples)
+q_train  = q_train[:no_train_samples]
+p_train  = p_train[:no_train_samples]
+y_train  = y_train[:no_train_samples]
+#
 
 # Training
 # ==================================================
@@ -303,12 +316,16 @@ with tf.Graph().as_default():
             """
             A single training step
             """
+            #print("q_batch :",q_batch)
+            #print("p_batch :",p_batch)
+            train_seq_len = np.ones(FLAGS.batch_size) * FLAGS.max_doc_length
             feed_dict = {
-              model.input_q: q_batch,
-              model.input_p: p_batch,
-              model.input_y: y_batch,
-              model.W_emb: embeddings,
-              model.dropout_keep_prob: FLAGS.dropout_keep_prob
+                model.input_q: q_batch,
+                model.input_p: p_batch,
+                model.input_y: y_batch,
+                model.W_emb: embeddings,
+                model.dropout_keep_prob: FLAGS.dropout_keep_prob,
+                model.seq_len: train_seq_len
             }
             """
             _, step, loss, accuracy = sess.run(
@@ -358,12 +375,14 @@ with tf.Graph().as_default():
             """
             Evaluates model on a dev set
             """
+            dev_seq_len = np.ones(dev_batch_size) * FLAGS.max_doc_length
             feed_dict = {
               model.input_q: q_batch,
               model.input_p: p_batch,
               model.input_y: y_dev,
               model.W_emb: embeddings,
-              model.dropout_keep_prob: 1.0
+              model.dropout_keep_prob: 1.0,
+              model.seq_len: dev_seq_len
             }
             #step, summaries, loss, accuracy, y_true, y_pred, input_q_CBOW_new_01,w1, q01,p06,p07,p08, p_nonzero, outlay1, scores, pred , loss, concatenated_input, input_p, outlay= sess.run(
             #    [global_step, dev_summary_op, model.loss, model.accuracy, model.y_true, model.predictions, model.input_q_CBOW_new_01,model.W1,model.input_q_01,model.input_p_06,model.input_p_07,model.input_p_08, model.mask_input_p_nonzero, model.outlay1,model.scores,model.predictions, model.loss, model.concatenated_input, model.input_p, model.outlay],

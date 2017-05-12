@@ -1,0 +1,55 @@
+0.18.1
+
+Parameters:
+ALLOW_SOFT_PLACEMENT=True
+BATCH_SIZE=50
+CHECKPOINT_EVERY=1000
+DATA_CLEANING_FLAG=True
+DATASET_SIZE=full_balanced
+DEV_SAMPLE_PERCENTAGE=0.1
+DROPOUT_KEEP_PROB=1
+EMB_PATH=../../glove/glove.6B.50d.txt
+EMBEDDING_METHOD=CBOW
+EVALUATE_EVERY=200
+FILTER_SIZES=3,4,5
+FULL_BALANCED_LABELS=../../data/clean_balanced_full_fold0_600K_labels.csv
+FULL_BALANCED_PARAGRAPH_TEXT=../../data/clean_balanced_full_fold0_600K_paragraph_text.csv
+FULL_BALANCED_QUERY_TEXT=../../data/clean_balanced_full_fold0_600K_query_text.csv
+L2_REG_LAMBDA=0.0
+LEARNING_RATE=0.001
+LOG_DEVICE_PLACEMENT=False
+MAX_DOC_LENGTH=50
+MAX_QUESTION_LENGTH=5
+MEDIUM_BALANCED_LABELS=../../data/clean_balanced_medium_fold0_600K_labels.csv
+MEDIUM_BALANCED_PARAGRAPH_TEXT=../../data/clean_balanced_medium_fold0_600K_paragraph_text.csv
+MEDIUM_BALANCED_QUERY_TEXT=../../data/clean_balanced_medium_fold0_600K_query_text.csv
+MODEL=cnn_attention
+NUM_CHECKPOINTS=5
+NUM_EPOCHS=5000
+NUM_FILTERS=150
+SEPARATE_QUESTION_LENGTH=False
+SHORT_BALANCED_LABELS=../../data/clean_balanced_short_fold0_600K_labels.csv
+SHORT_BALANCED_PARAGRAPH_TEXT=../../data/clean_balanced_short_fold0_600K_paragraph_text.csv
+SHORT_BALANCED_QUERY_TEXT=../../data/clean_balanced_short_fold0_600K_query_text.csv
+VOCAB_FREQ=2
+
+importing model cnn_attention ...
+Loading data...
+Loading and cleaning queries...
+Queries cleaned !
+Loading and cleaning paragraphs...
+Paragraph cleaned !
+Finished loading data successfully.
+Finding maximum length in train data...
+Maximum document length is 2580 words
+Building vocabulary...
+Processing text data...
+Loading embeddings...
+Traceback (most recent call last):
+  File "embed_and_train.py", line 142, in <module>
+    embeddings = data_helpers_embed.load_embeddings(FLAGS.emb_path, vocab_processor)
+  File "/scratch/up276/QueryBasedSummarization/code/data_helpers_embed.py", line 131, in load_embeddings
+    embs = ([x.split(" ") for x in open(path).read().strip().split("\n")])
+  File "/share/apps/python3/3.5.3/intel/lib/python3.5/encodings/ascii.py", line 26, in decode
+    return codecs.ascii_decode(input, self.errors)[0]
+UnicodeDecodeError: 'ascii' codec can't decode byte 0xe2 in position 93246: ordinal not in range(128)

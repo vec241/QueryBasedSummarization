@@ -48,6 +48,12 @@ def clean_str(string):
     string = re.sub(r"\s{2,}", " ", string)
     return string.strip().lower()
 
+#cut at max question length
+def cut(s):
+    temp = s.split(" ")
+    temp_max_question_length = s[:FLAGS.max_question_length]
+    return " ".join(temp_max_question_length)
+
 def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_method
     """
     Loads data from file and generates labels.
@@ -71,6 +77,7 @@ def load_data_and_labels(FLAGS): #labels, query_CBOW, paragraph_CBOW, embedding_
     if os.path.isfile(q_path):
         print("Loading and cleaning queries...")
         q = np.load(q_path)
+
         if FLAGS.data_cleaning_flag is True:
             q = [clean_str(x) for x in q]
             print("Queries cleaned !")
@@ -140,7 +147,7 @@ def load_embeddings(path,vocab):
     print("mapped_words.index[0] :",mapped_words.index(0))
     print("mat[0] :",mat[mapped_words.index(0)])
     print("words[0] :",words[mapped_words.index(0)])
-    for i in tqdm(range(vocab_size)):
+    for i in range(vocab_size):
         if i in set_words:
             emb_matrix[i]=mat[mapped_words.index(i)]
             """

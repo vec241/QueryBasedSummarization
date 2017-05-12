@@ -34,9 +34,9 @@ tf.flags.DEFINE_string("short_balanced_paragraph_text", "../../data/clean_balanc
 tf.flags.DEFINE_string("medium_balanced_labels", "../../data/clean_balanced_medium_fold0_600K_labels.csv", "labels")
 tf.flags.DEFINE_string("medium_balanced_query_text", "../../data/clean_balanced_medium_fold0_600K_query_text.csv", "query_text")
 tf.flags.DEFINE_string("medium_balanced_paragraph_text", "../../data/clean_balanced_medium_fold0_600K_paragraph_text.csv", "paragraph_text")
-tf.flags.DEFINE_string("full_balanced_labels", "../../data/300K_clean_balanced_full_fold0_600K_labels.csv", "labels")
-tf.flags.DEFINE_string("full_balanced_query_text", "../../data/300K_clean_balanced_full_fold0_600K_query_text.csv", "query_text")
-tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/300K_clean_balanced_full_fold0_600K_paragraph_text.csv", "paragraph_text")
+tf.flags.DEFINE_string("full_balanced_labels", "../../data/clean_balanced_full_fold0_600K_labels.csv", "labels")
+tf.flags.DEFINE_string("full_balanced_query_text", "../../data/clean_balanced_full_fold0_600K_query_text.csv", "query_text")
+tf.flags.DEFINE_string("full_balanced_paragraph_text", "../../data/clean_balanced_full_fold0_600K_paragraph_text.csv", "paragraph_text")
 tf.flags.DEFINE_string("data_cleaning_flag", True, "data_cleaning_flag")
 
 # Model Hyperparameters

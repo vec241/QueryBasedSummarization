@@ -173,8 +173,8 @@ print("data shuffled !/n")
 # TODO: This is very crude, should use cross-validation
 print("Splitting into train and dev \n")
 
-if FLAGS.dataset_size == "full_balanced":
-    dev_sample_index = -5000
+if FLAGS.dataset_size == "full":
+    dev_sample_index = -500
 else:
     dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 print("Dev Samples : ",dev_sample_index )
@@ -375,7 +375,7 @@ with tf.Graph().as_default():
             time_str = datetime.datetime.now().isoformat()
             precision = precision_score(y_true, y_pred)
             recall = recall_score(y_true, y_pred)
-            opt_line = str(step) + "," + str(accuracy) + "," + str(precision) +","+str(recall)+","+ str(loss)+"\n"
+            opt_line = "batch_step" + str(step) + "," + str(accuracy) + "," + str(precision) +","+str(recall)+","+ str(loss)+"\n"
             with open(dev_opt_file,"a") as dev_opt:
                     dev_opt.write(opt_line)
 	    #dev_output.write(opt_line)
@@ -418,15 +418,18 @@ with tf.Graph().as_default():
             #    print(scores[i])
 
             print("{}: step {}, loss {:g}, acc {:g}, precision {:g}, recall {:g}".format(time_str, step, loss, accuracy, precision, recall))
-            if writer:
-                writer.add_summary(summaries, step)
+            #if writer:
+            #    writer.add_summary(summaries, step)
+	    return loss, acc, precision, recall
 
         # Generate batches
         batches = data_helpers_embed.batch_iter(
             list(zip(q_train, p_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         print("data batches prepared for the model : ")
-
-
+       
+	batches_dev = data_helpers_embed.batch_iter(
+            list(zip(q_dev, p_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
+        print("data batches prepared for the model : ")
         # Training loop. For each batch...
         for batch in batches:
             q_batch, p_batch, y_batch = zip(*batch)
@@ -438,9 +441,29 @@ with tf.Graph().as_default():
             train_step(q_batch, p_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
-                print("\nEvaluation:")
-                dev_step(q_dev, p_dev, y_dev, writer=dev_summary_writer)
-                print("")
+		loss_dev = list()
+		acc_dev = list()
+		precision_dev = list()
+		recall_dev = list()
+                for batch_dev in batches_dev:
+			q_batch_dev, p_batch_dev, y_batch_dev = zip(*batch_dev)
+			print("\nEvaluation:")
+                	loss, acc, precision, recall = dev_step(q_batch_dev, p_batch_dev, y_batch_dev , writer=dev_summary_writer)
+			loss_dev.append(loss)
+			acc_dev.append(acc)
+			precision_dev.append(precision)
+			recall_dev.append(recall)
+			#opt_line = "master_step" + str(step) + "," + str(accuracy) + "," + str(precision) +","+str(recall)+","+ str(loss)+"\n"
+            		#with open(dev_opt_file,"a") as dev_opt:
+                    	#	dev_opt.write(opt_line)
+                	print("")
+		avg_dev_loss = np.mean(loss_dev)
+		avg_dev_acc = np.mean(acc_dev)
+		avg_dev_precision = np.mean(precision_dev)
+		avg_dev_recall = np.mean(recall_dev)
+		opt_line = "master_step" + str(step) + "," + str(avg_dev_acc) + "," + str(avg_dev_precision) +","+str(avg_dev_recall)+","+ str(avg_dev_loss)+"\n"
+               	with open(dev_opt_file,"a") as dev_opt:
+                        dev_opt.write(opt_line)
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))
