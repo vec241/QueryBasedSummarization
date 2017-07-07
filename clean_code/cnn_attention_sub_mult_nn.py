@@ -1,18 +1,17 @@
+"""
+Code for the CNN + attention + concatenation of pointwise difference and pointwise mulitplication + MLP model (cf report)
+"""
+
+
 import tensorflow as tf
 import numpy as np
 
 
 class Model(object):
-    """
-    A CNN for text classification.
-    Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
-    """
+
     def __init__(self, num_classes, vocab_size, embedding_size, max_length, vocab_proc, filter_sizes, num_filters,
       l2_reg_lambda=0.0, use_emb=True):
 
-        # Placeholders for input, output and dropout
-        #self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
-        #self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
         # Placeholders for input, embedding matrix for unknown words and dropout
         self.input_q = tf.placeholder(tf.int32, [None, max_length], name="input_q")
         self.input_p = tf.placeholder(tf.int32, [None, max_length], name="input_p")
@@ -20,13 +19,11 @@ class Model(object):
         self.W_emb = tf.placeholder(tf.float32,[vocab_size, embedding_size], name="emb_pretrained")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
-        # Keeping track of l2 regularization loss (optional)
-        l2_loss = tf.constant(0.0)
-
         # Embedding layer
         with tf.name_scope("embedding_text"):
+
             '''
-            # Create the matrix of embeddings of all words in vocab
+            # Following block only useful if we want to train embeddings for words not in vocab
             if use_emb:
                 self.train_W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
@@ -42,17 +39,12 @@ class Model(object):
             '''
 
             self.W = self.W_emb
-            self.W_2nd_row = tf.gather(self.W , 1)
 
             # Map word IDs to word embeddings
             self.input_q_emb = tf.nn.embedding_lookup(self.W, self.input_q)
             self.input_p_emb = tf.nn.embedding_lookup(self.W, self.input_p)
             self.input_q_emb_expanded = tf.expand_dims(self.input_q_emb, -1)
             self.input_p_emb_expanded = tf.expand_dims(self.input_p_emb, -1)
-
-            print('input_q_emb_expanded', self.input_q_emb_expanded)
-            print('input_p_emb_expanded', self.input_p_emb_expanded)
-
 
         # Process p and q through convolution layer
         with tf.name_scope("conv_maxpool_q"):
@@ -68,16 +60,13 @@ class Model(object):
             self.h_p = self.attention(self.h_q, conv_outputs_p, max_length, filter_sizes, num_filters)
             print('self.h_p', self.h_p)
 
-
         # Add dropout
         with tf.name_scope("dropout"):
             self.h_q_drop = tf.nn.dropout(self.h_q, self.dropout_keep_prob)
             self.h_p_drop = tf.nn.dropout(self.h_p, self.dropout_keep_prob)
 
-
         # Keeping track of l2 regularization loss (optional)
         #l2_loss = tf.constant(0.0)
-
 
         # Network Parameters
         n_hidden_1 = 256 # 1st layer number of features
@@ -86,32 +75,28 @@ class Model(object):
         print('n_input', n_input)
         n_classes = num_classes
 
-
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
-            self.concatenated_input = tf.concat([self.h_q_drop, self.h_p_drop], 1, name="concatenated_input")
-            print("self.concatenated_input : ", self.concatenated_input)
+            dif = tf.subtract(self.h_p_drop, self.h_q_drop,name="dif")
+            dif_point_mul = tf.multiply(dif, dif, name ="dif_point_mul")
+            pq_point_mul = tf.multiply(self.h_p_drop, self.h_q_drop, name="pq_point_mul")
+            self.concatenated_input = tf.concat([dif_point_mul, pq_point_mul], 1,name="concatenated_input")
             self.scores = self.multilayer_perceptron(self.concatenated_input,
-                            n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
+              n_input, n_hidden_1, n_hidden_2, n_classes, self.dropout_keep_prob)
             function_to_score = lambda x : x + (10.0**(-4))  # Where `f` instantiates myCustomOp.
             self.scores = tf.map_fn(function_to_score, self.scores)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
             self.y_true = tf.argmax(self.input_y, 1, name="y_true")
-
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
             losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores, name = "losses")
             self.loss = tf.reduce_mean(losses,0,name = 'loss_sub') #+ l2_reg_lambda * l2_loss
 
-
         # Accuracy
         with tf.name_scope("accuracy"):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1),name='correct_predictions')
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
-
-
-
 
 
     def convolution(self, input_expanded, embedding_size, max_length, filter_sizes, num_filters):
@@ -166,60 +151,45 @@ class Model(object):
                 print('pooled', pooled)
                 pooled_outputs.append(pooled)
         # Combine all the pooled features
-        print('pooled_outputs', pooled_outputs)
-        print('pooled_outputs[0]', pooled_outputs[0])
-        print('len(pooled_outputs)', len(pooled_outputs))
         h_pool = tf.concat(pooled_outputs, 3)
-        print('h_pool', h_pool)
         num_filters_total = num_filters * len(filter_sizes)
         h_pool_flat = tf.reshape(h_pool, [-1, num_filters_total])
-        print('h_pool_flat', h_pool_flat)
         return h_pool_flat
+
 
     def attention(self, query_vector, paragraph, max_length, filter_sizes, num_filters):
         # Create embedding of paragraph using attention from query (embedded with CBOW)
-        print('query_vector.get_shape()', query_vector.get_shape())
-        print('len(paragraph)',len(paragraph))
-        #
         paragraph = tf.concat(paragraph, 3)
-        print('paragraph.get_shape()',paragraph.get_shape())
         num_filters_total = num_filters * len(filter_sizes)
         paragraph = tf.reshape(paragraph, [-1, max_length, num_filters_total])
-        print('paragraph.get_shape()',paragraph.get_shape())
         query_vector_expanded = tf.expand_dims(query_vector, 1)
-        print('query_vector_expanded.get_shape()', query_vector_expanded.get_shape())
         alphas = tf.multiply(query_vector_expanded, paragraph)
-        print('alphas.get_shape()', alphas.get_shape())
         alphas = tf.reduce_sum(alphas, 2, name="alphas")
-        print('alphas.get_shape()', alphas.get_shape())
         norm_alphas = tf.nn.softmax(logits=alphas, name="norm_alphas")
-        print('norm_alphas.get_shape()', norm_alphas.get_shape())
         norm_alphas_expanded = tf.expand_dims(norm_alphas, 2)
-        print('norm_alphas_expanded.get_shape()', norm_alphas_expanded.get_shape())
-        #self.input_p_emb = tf.transpose(self.input_p_emb, perm=[0, 2, 1])
-        #print(self.input_p_emb.get_shape())
         h_attention = tf.multiply(norm_alphas_expanded, paragraph)
-        print('h_attention.get_shape()', h_attention.get_shape())
         h_attention = tf.reduce_sum(h_attention, 1)
-        print('h_attention.get_shape()', h_attention.get_shape())
         return h_attention
 
 
     def nn_layer(self, x, W_shape, bias_shape, dropout_keep_prob):
+        """
+        Implements one layer of the MLP
+        """
         W = tf.get_variable("weights", W_shape,
             initializer=tf.contrib.layers.xavier_initializer())
         b = tf.get_variable("biases", bias_shape,
             initializer=tf.contrib.layers.xavier_initializer())
         W = tf.nn.dropout(W, dropout_keep_prob)
         out_lay = tf.add(tf.matmul(x, W), b)
-        #out_lay = tf.matmul(x, W)
-        #W = tf.Print(W,[W]," nn layer W :")
-        #b = tf.Print(b,[b]," nn layer b :")
-        #out_lay = tf.Print(out_lay,[out_lay]," nn layer out_lay :")
         return out_lay, W
 
 
     def multilayer_perceptron(self, x, n_input, n_hidden_1, n_hidden_2, n_classes, dropout_keep_prob):
+        """
+        Implements the MLP.
+        Defining self.[various variables] for visualization / debugging purpose
+        """
         with tf.variable_scope("layer_1"):
             out_lay1,W1 = self.nn_layer(x, [n_input, n_hidden_1], [n_hidden_1], dropout_keep_prob)
             self.W1 = W1

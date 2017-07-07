@@ -21,9 +21,9 @@ from sklearn.metrics import precision_score, recall_score
 # ==================================================
 
 # Which model, which embedding method and which data size to use
-tf.flags.DEFINE_string("model", "cnn_att_comp_agr", "Specify which model to use") #cnn_att_sub_mult, cnn_att_comp_agr baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention
+tf.flags.DEFINE_string("model", "rnn_attention", "Specify which model to use") #rnn_attention, cnn_attention_concat_MLP, cnn_att_sub_mult, cnn_att_comp_agr baseline_concat_nn_embed , baseline_sub_mult_nn_embed, cnn_attention_concat_MLP
 tf.flags.DEFINE_string("embedding_method", "CBOW", "embedding_method")
-tf.flags.DEFINE_string("dataset_size", "full_balanced", "short_balanced, medium_balanced, or full_balanced")
+tf.flags.DEFINE_string("dataset_size", "short_balanced", "short_balanced, medium_balanced, or full_balanced")
 
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -91,13 +91,7 @@ print("")
 
 # Import model
 print("importing model %s ..." %(FLAGS.model))
-if FLAGS.model == "baseline_bilinear":
-    from baseline_bilinear import Model
-elif FLAGS.model == "baseline_sub_mult_nn":
-    from baseline_sub_mult_nn import Model
-elif FLAGS.model == "baseline_concat_nn":
-    from baseline_concat_nn import Model
-elif FLAGS.model == "baseline_bilinear_embed":
+if FLAGS.model == "baseline_bilinear_embed":
     from baseline_bilinear_embed import Model
 elif FLAGS.model == "baseline_sub_mult_nn_embed":
     from baseline_sub_mult_nn_embed import Model
@@ -109,8 +103,10 @@ elif FLAGS.model == "cnn_att_sub_mult":
     from cnn_attention_sub_mult_nn import Model
 elif FLAGS.model == "cnn_att_comp_agr":
     from cnn_att_comp_agr import Model
-elif FLAGS.model == "cnn_attention":
-    from cnn_attention import Model
+elif FLAGS.model == "cnn_attention_concat_MLP":
+    from cnn_attention_concat_MLP import Model
+elif FLAGS.model == "rnn_attention":
+    from rnn_attention import Model
 else:
     print("wrong model defined")
 
