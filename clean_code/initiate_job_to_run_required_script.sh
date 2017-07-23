@@ -1,3 +1,5 @@
+#This script is specificaly designed for NYU Prince server, to initiate a call on GPU for particular script. You might would have to change the settigns according to your specific server.
+
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --time=50:00:00
