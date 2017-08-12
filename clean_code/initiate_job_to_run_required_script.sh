@@ -15,4 +15,4 @@ module load python3/intel/3.5.3
 python3 -c "import sklearn; print(sklearn.__version__)"
 module load tensorflow/python3.5/1.0.1
 cd /scratch/up276/QueryBasedSummarization/code  #PLEASE REPLACE THIS PATH WITH YOUR SCRIPT PATH
-python3 -u embed_and_train_baseline_bilinear.py  # ENTER THE SCRIPT NAME WHICH YOU WANT TO RUN
+python3 -u embed_and_train.py  # ENTER THE SCRIPT NAME WHICH YOU WANT TO RUN
